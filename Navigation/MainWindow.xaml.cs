@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Timers;
+using System.Diagnostics;
+using System.Drawing;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Forms;
@@ -8,10 +10,9 @@ using GMap.NET;
 using GMap.NET.MapProviders;
 using GMap.NET.WindowsForms;
 using GMap.NET.WindowsForms.Markers;
-using Navigation.Utils;
-using OxyPlot;
-using MessageBox = System.Windows.MessageBox;
-using Timer = System.Timers.Timer;
+using Navigation.Business;
+using Navigation.Infrastructure;
+using Navigation.Models;
 
 namespace Navigation
 {
@@ -20,34 +21,36 @@ namespace Navigation
     /// </summary>
     public partial class MainWindow : Window
     {
-        private readonly MeasurementProcessor _processor;
-        private Timer _timer;
-
+        private const string Undefined = "undefined";
+        private const string Ready = "Ready";
         private PointLatLng _focus;
-        private bool _ran;
-        private bool _fileOpened;
+        private GMapMarker _currentPoint;
+        private CustomMarker _selectedMarker;
+
         public int Zoom { get; set; }
-        private GMapOverlay _trajectoryOverlay;
+        private GMapOverlay _pointsOverlay;
+        private GMapOverlay _connectionsOverlay;
+        private GMapOverlay _minPathOverlay;
+
+        private CustomMarker _selectedFrom;
+        private CustomMarker _selectedTo;
+
+        private readonly Repository _repository;
+        private readonly Service _service;
 
         public MainWindow()
         {
-            _focus = new PointLatLng(50.022596, 36.2268269);
-            _processor = new MeasurementProcessor();
-            _timer = new Timer(30);
+            _repository = new Repository();
+            _repository.Load();
+
+            _service = new Service(_repository);
+
 
             DataContext = this;
 
-            _ran = false;
-            _fileOpened = false;
-
             InitializeComponent();
             InitializeMap();
-            InitializeGraphs();
             
-            _processor.MeasurementProcessed += OnMeasurementProcessed;
-            _processor.BadMeasurementProcessed += OnBadMeasurementProcessed;
-            _timer.Elapsed += TimerOnElapsed;
-
             this.Closing += MainWindow_Closing;
         }
 
@@ -57,113 +60,35 @@ namespace Navigation
             GoogleMapProvider.Language = LanguageType.Russian;
             Map.MapProvider = GoogleMapProvider.Instance;
 
+            _focus = new PointLatLng(48.994636, 31.442871);
+            _currentPoint = new GMarkerCross(_focus);
             Map.Position = _focus;
             Map.MinZoom = 1;
             Map.MaxZoom = 20;
-            Map.Zoom = 12;
-            ZoomSlider.Value = 12;
+            Map.Zoom = 5;
+            ZoomSlider.Value = 5;
             Map.DragButton = MouseButtons.Left;
             Map.MapScaleInfoEnabled = true;
 
             Map.OnMapZoomChanged += OnMapWheelZooming;
 
-            _trajectoryOverlay = new GMapOverlay("trajectory");
-            Map.Overlays.Add(_trajectoryOverlay);
+            Map.OnMarkerClick += MapOnOnMarkerClick;
+            Map.MouseClick += MapOnMouseClick;
 
+            _pointsOverlay = new GMapOverlay();
+            _connectionsOverlay = new GMapOverlay();
+            _minPathOverlay = new GMapOverlay();
+
+            Map.Overlays.Add(_pointsOverlay);
+            Map.Overlays.Add(_connectionsOverlay);
+            Map.Overlays.Add(_minPathOverlay);
+
+
+            UpdatePointsOverlay();
+            UpdateConnectionsOverlay();
         }
 
-        private void InitializeGraphs()
-        {
-            TrajectoryPoints.ItemsSource = new List<DataPoint>();
-            SpeedPoints.ItemsSource = new List<DataPoint>();
-            HeightPoints.ItemsSource = new List<DataPoint>();
-            PathPoints.ItemsSource = new List<DataPoint>();
-            CoursePoints.ItemsSource = new List<DataPoint>();
-        }
-
-       
         # region handlers
-
-        private void TimerOnElapsed(object sender, ElapsedEventArgs elapsedEventArgs)
-        {
-            if (_processor.Finished)
-            {
-                _timer.Stop();
-                Dispatcher.Invoke(() =>
-                {
-                    StatusLabel.Content = "Finished...";
-                });
-            }
-
-            _processor.ProcessNextMeasurement();
-        }
-
-        private void OnMeasurementProcessed(object sender, MeasurementProcessedEventArgs args)
-        {
-            var measurement = args.Measurement;
-            try
-            {
-                Dispatcher.Invoke(() =>
-                {
-                    StatusLabel.Content = "On Measurement Processed...";
-
-                    _trajectoryOverlay.Markers.Add(
-                        new GMarkerGoogle(new PointLatLng(measurement.Latitude.AsDouble, measurement.Longitude.AsDouble),
-                            GMarkerGoogleType.brown_small));
-                    Map.Position = new PointLatLng(measurement.Latitude.AsDouble, measurement.Longitude.AsDouble);
-
-                    (TrajectoryPoints.ItemsSource as List<DataPoint>).Add(new DataPoint(measurement.Longitude.AsDouble, measurement.Latitude.AsDouble));
-                    (SpeedPoints.ItemsSource as List<DataPoint>).Add(new DataPoint(measurement.FlightTime, measurement.Speed));
-                    (HeightPoints.ItemsSource as List<DataPoint>).Add(new DataPoint(measurement.FlightTime, measurement.Height));
-                    (PathPoints.ItemsSource as List<DataPoint>).Add(new DataPoint(measurement.FlightTime, measurement.Path));
-                    (CoursePoints.ItemsSource as List<DataPoint>).Add(new DataPoint(measurement.FlightTime, measurement.Course));
-
-                    TrajectoryPlot.InvalidatePlot(true);
-                    SpeedPlot.InvalidatePlot(true);
-                    HeightPlot.InvalidatePlot(true);
-                    PathPlot.InvalidatePlot(true);
-                    CoursePlot.InvalidatePlot(true);
-
-                    Table.Items.Add(new
-                    {
-                        Number = Table.Items.Count,
-                        Latitude = measurement.Latitude.ToString(),
-                        Longitude = measurement.Longitude.ToString(),
-                        Height = measurement.Height,
-                        Time = measurement.Time,
-                        Speed = Math.Round(measurement.Speed, 2),
-                        Path = Math.Round(measurement.Path, 2),
-                        Course = measurement.Course,
-                        Nomenclature = measurement.Nomenclature
-                    });
-
-
-                    TotalPathLabel.Content = string.Format("Total path: {0}m", Math.Round(measurement.Path, 2));
-                    AverageSpeedLabel.Content = string.Format("Average speed: {0}m/s", Math.Round(_processor.AverageSpeed, 2));
-                    MinSpeedLabel.Content = string.Format("Min speed: {0}m/s", Math.Round(_processor.MinSpeed, 2));
-                    MaxSpeedLabel.Content = string.Format("Max speed: {0}m/s", Math.Round(_processor.MaxSpeed, 2));
-                    MinHeightLabel.Content = string.Format("Min height: {0}m", Math.Round(_processor.MinHeight, 2));
-                    MaxHeightLabel.Content = string.Format("Max height: {0}m", Math.Round(_processor.MaxHeight, 2));
-
-                    var time = TimeSpan.FromSeconds(measurement.FlightTime);
-                    FlightTimeLabel.Content = string.Format("Flight time: {0}h {1}m {2}s", time.Hours, time.Minutes, time.Seconds);
-                });
-
-            }
-            catch (AggregateException e)
-            {
-                MessageBox.Show(e.InnerException.Message);
-            }
-
-        }
-
-        private void OnBadMeasurementProcessed(object sender, EventArgs eventArgs)
-        {
-            Dispatcher.Invoke(() =>
-            {
-                BadMeasurementsLabel.Content = string.Format("Bad measurements: {0}", _processor.BadMeasurementsCount);
-            });
-        }
 
         private void OnZoomSliderValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
@@ -182,102 +107,300 @@ namespace Navigation
             ZoomSlider.Value = Map.Zoom;
         }
 
-        private void ChooseFileButton_Click(object sender, RoutedEventArgs e)
+        void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            var dialog = new OpenFileDialog();
-            dialog.Filter = "txt files (*.txt)|*.txt";
-            dialog.RestoreDirectory = true;
+        }
 
-            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+        private void Selector_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            ClearPathFields();
+            ClearConnectionFields();
+            ClearCurrentPointFields();
+
+            CurrentLatLabel.Content = Undefined;
+            CurrentLngLabel.Content = Undefined;
+
+            UpdateMinPathsOverlay();
+
+            SetStatus(Ready);
+        }
+
+        private void MapOnMouseClick(object sender, MouseEventArgs args)
+        {
+            if (args.Button == MouseButtons.Left)
             {
-                FilePathTextBox.Text = dialog.FileName;
+                double lat = Map.FromLocalToLatLng(args.X, args.Y).Lat;
+                double lng = Map.FromLocalToLatLng(args.X, args.Y).Lng;
+
+                CurrentLatLabel.Content = lat.ToString();
+                CurrentLngLabel.Content = lng.ToString();
+
+                _currentPoint.Position = new PointLatLng(lat, lng);
             }
         }
 
-        private void OpenFileButton_Click(object sender, RoutedEventArgs e)
+        private void MapOnOnMarkerClick(GMapMarker item, MouseEventArgs mouseEventArgs)
         {
-            if (FilePathTextBox.Text.Contains("."))
+            var markerInfo = (CustomMarker)item;
+
+            _selectedMarker = markerInfo;
+
+            UpdatePointId.Content = _selectedMarker.Id;
+            UpdatePointName.Text = _selectedMarker.Name;
+            IsAirpoirtUpdateCheckbox.IsChecked = _selectedMarker.IsAirport;
+
+            if (_selectedFrom == null)
             {
-                _processor.Reinitialize(FilePathTextBox.Text);
-                StatusLabel.Content = "Ready to start...";
-                _fileOpened = true;
+                _selectedFrom = markerInfo;
+                NewConnectionFromLabel.Content = 
+                PathFromLabel.Content = String.IsNullOrEmpty(markerInfo.Name)
+                    ? markerInfo.Id.ToString()
+                    : markerInfo.Name;
             }
             else
             {
-                MessageBox.Show("Incorrect file name");
+                _selectedTo = markerInfo;
+                NewConnectionToLabel.Content =
+                PathToLabel.Content = String.IsNullOrEmpty(markerInfo.Name)
+                    ? markerInfo.Id.ToString()
+                    : markerInfo.Name;
             }
         }
 
-        private void StartButton_Click(object sender, RoutedEventArgs e)
+        private void AddPoint_Click(object sender, RoutedEventArgs e)
         {
-            if (!_ran && _fileOpened)
+            if (CurrentLatLabel.Content.IsUndefined() || CurrentLngLabel.Content.IsUndefined())
             {
-                try
-                {
-                    _timer.Start();
-                    _ran = true;
-                    StatusLabel.Content = "Running...";
-
-                }
-                catch (AggregateException)
-                {
-                    MessageBox.Show("Please, open file with measurements before starting...");
-                }
+                SetStatus("Please, select location");
+                return;
             }
+
+            var point = new Models.Point()
+            {
+                Lat = double.Parse(CurrentLatLabel.Content as string),
+                Lng = double.Parse(CurrentLngLabel.Content as string),
+                IsAirport = IsAirpoirtCheckbox.IsChecked.Value,
+                Name = CurrentPointName.Text
+            };
+
+            _repository.Add(point);
+            _repository.Save();
+
+            UpdatePointsOverlay();
+            UpdateConnectionsOverlay();
+            ClearConnectionFields();
+
+            SetStatus(Ready);
         }
 
-        private void StopButton_Click(object sender, RoutedEventArgs e)
+        private void Clear_Click(object sender, RoutedEventArgs e)
         {
-            if (_ran)
-            {
-                _timer.Stop();
-                _ran = false;
-                StatusLabel.Content = "Paused...";
-            }
+            ClearConnectionFields();
+            ClearPathFields();
+            UpdateMinPathsOverlay();
+
+            SetStatus(Ready);
         }
 
-        void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        private void AddConnection_Click(object sender, RoutedEventArgs e)
         {
-            if (_ran)
+            if (_selectedFrom == null || _selectedTo == null)
             {
-                _timer.Stop();
+                SetStatus("Please select 2 markers to add new connection...");
+                return;
             }
+
+            _repository.Add(new Connection()
+            {
+                From = _selectedFrom.Id,
+                To = _selectedTo.Id
+            });
+            
+            _repository.Save();
+
+            ClearConnectionFields();
+            UpdateConnectionsOverlay();
+
+            SetStatus(Ready);
         }
 
-        private void RestartButton_Click(object sender, RoutedEventArgs e)
+        private void DeleteConnection_Click(object sender, RoutedEventArgs e)
         {
-            if (_ran)
+            if (_selectedFrom == null || _selectedTo == null)
             {
-                _timer.Stop();
-                _ran = false;
+                SetStatus("Both markers should be selected");
+                return;
             }
 
-
-            if (_fileOpened)
+            try
             {
-                _processor.Reset();
-                StatusLabel.Content = "Ready to start...";
+                _repository.DeleteConnection(_selectedFrom.Id, _selectedTo.Id);
+                _repository.Save();
+            }
+            catch (Exception exception)
+            {
+                SetStatus("Connection does not exist");
             }
 
-            _trajectoryOverlay.Markers.Clear();
-            (TrajectoryPoints.ItemsSource as List<DataPoint>).Clear();
-            (SpeedPoints.ItemsSource as List<DataPoint>).Clear();
-            (HeightPoints.ItemsSource as List<DataPoint>).Clear();
-            (PathPoints.ItemsSource as List<DataPoint>).Clear();
-            (CoursePoints.ItemsSource as List<DataPoint>).Clear();
+            ClearConnectionFields();
+            UpdateConnectionsOverlay();
 
-            Table.Items.Clear();
-
-            TotalPathLabel.Content = string.Format("Total path: N/A");
-            AverageSpeedLabel.Content = string.Format("Average speed: N/A");
-            MinSpeedLabel.Content = string.Format("Min speed: N/A");
-            MaxSpeedLabel.Content = string.Format("Max speed: N/A");
-            MinHeightLabel.Content = string.Format("Min height: N/A");
-            MaxHeightLabel.Content = string.Format("Max height: N/A");
+            SetStatus(Ready);
         }
 
+        private void DeletePoint_Click(object sender, RoutedEventArgs e)
+        {
+            if (UpdatePointId.Content.IsUndefined())
+            {
+                SetStatus("Please select marker first");
+                return;
+            }
+
+            _repository.DeletePoint(_selectedMarker.Id);
+            _repository.Save();
+
+            ClearCurrentPointFields();
+            UpdateOverlays();
+
+            SetStatus(Ready);
+        }
+
+        private void UpdatePoint_Click(object sender, RoutedEventArgs e)
+        {
+            if (UpdatePointId.Content.IsUndefined())
+            {
+                SetStatus("Please select marker first");
+                return;
+            }
+
+            _repository.UpdatePoint(_selectedMarker.Id, IsAirpoirtUpdateCheckbox.IsChecked.Value, UpdatePointName.Text);
+            _repository.Save();
+
+            ClearCurrentPointFields();
+            UpdateOverlays();
+
+            SetStatus(Ready);
+        }
+
+        private void ShowPath_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedFrom == null || 
+                _selectedTo == null || 
+                !_selectedFrom.IsAirport || 
+                !_selectedTo.IsAirport)
+            {
+                SetStatus("Airports should be selected for path optimal path calculation");
+                return;
+            }
+
+            var from = _selectedFrom.Id;
+            var to = _selectedTo.Id;
+
+            try
+            {
+                var optimalPath = _service.GetOptimalPath(from, to);
+                UpdateMinPathsOverlay(optimalPath);
+            }
+            catch(NoWayException)
+            {
+                SetStatus("There is no way between these airports");
+                ClearPathFields();
+                UpdateMinPathsOverlay();
+                return;
+            }
+
+            ClearPathFields();
+            SetStatus(Ready);
+        }
 
         #endregion
 
+        private void UpdatePointsOverlay()
+        {
+            _pointsOverlay.Markers.Clear();
+
+            var markers = _repository.GetPoints().Select(p => p.ToMarker());
+            foreach (var marker in markers)
+            {
+                _pointsOverlay.Markers.Add(marker);
+            }
+
+            _pointsOverlay.Markers.Add(_currentPoint);
+        }
+
+        private void UpdateConnectionsOverlay()
+        {
+            var connections = _repository.GetConnections();
+            var points = _repository.GetPoints();
+
+            var lines = connections.Select(c => points.Where(p => p.Id == c.From || p.Id == c.To)
+                                                      .Select(p => p.ToMapPoint())
+                                                      .ToList());
+
+            _connectionsOverlay.Polygons.Clear();
+
+            foreach (var line in lines)
+            {
+                var poly = new GMapPolygon(line, "Connection");
+                poly.Stroke = new Pen(Color.CornflowerBlue, 2);
+                _connectionsOverlay.Polygons.Add(poly);
+            }
+        }
+
+        private void UpdateMinPathsOverlay(IEnumerable<IEnumerable<PointLatLng>> path = null)
+        {
+            _minPathOverlay.Polygons.Clear();
+
+            if (path == null)
+            {
+                return;
+            }
+
+            foreach (var line in path)
+            {
+                var poly = new GMapPolygon(line.ToList(), "Connection");
+                poly.Stroke = new Pen(Color.DarkGreen, 4);
+                _minPathOverlay.Polygons.Add(poly);
+            }
+        }
+
+        private void UpdateOverlays()
+        {
+            UpdatePointsOverlay();
+            UpdateConnectionsOverlay();
+        }
+
+        private void ClearConnectionFields()
+        {
+            _selectedFrom = null;
+            _selectedTo = null;
+
+            NewConnectionFromLabel.Content = Undefined;
+            NewConnectionToLabel.Content = Undefined;
+
+            PathFromLabel.Content = Undefined;
+            PathToLabel.Content = Undefined;
+        }
+
+        private void ClearCurrentPointFields()
+        {
+            UpdatePointId.Content = Undefined;
+            UpdatePointName.Text = "";
+            IsAirpoirtUpdateCheckbox.IsChecked = false;
+        }
+
+        private void SetStatus(string message)
+        {
+            StatusLabel.Content = message;
+        }
+
+        private void ClearPathFields()
+        {
+            _selectedFrom = null;
+            _selectedTo = null;
+
+            PathFromLabel.Content = Undefined;
+            PathToLabel.Content = Undefined;
+        }
     }
 }

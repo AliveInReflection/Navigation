@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<StorageModel xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Points>
+    <Point Id="0" Lat="50.0077390146369" Lng="36.27685546875" IsAirport="true" />
+    <Point Id="1" Lat="50.4714908513996" Lng="30.52001953125" IsAirport="true" />
+    <Point Id="2" Lat="44.6061127451739" Lng="33.5302734375" IsAirport="true" />
+    <Point Id="3" Lat="47.9163420401612" Lng="33.3544921875" IsAirport="false" />
+    <Point Id="5" Lat="48.7779127555018" Lng="36.826171875" IsAirport="false" />
+    <Point Id="6" Lat="50.2752986114252" Lng="33.15673828125" IsAirport="false" />
+    <Point Id="7" Lat="48.4583518828087" Lng="22.7197265625" IsAirport="true" />
+    <Point Id="8" Lat="50.6250730634143" Lng="26.25732421875" IsAirport="true" />
+    <Point Id="10" Lat="48.6329085858953" Lng="24.63134765625" IsAirport="false" />
+    <Point Id="11" Lat="49.9370797569753" Lng="26.87255859375" IsAirport="false" />
+    <Point Id="13" Lat="47.8426576281654" Lng="36.38671875" IsAirport="true" />
+    <Point Id="14" Lat="47.3090342477478" Lng="35.4638671875" IsAirport="true" />
+    <Point Id="15" Lat="49.0378679453264" Lng="38.2763671875" IsAirport="true" />
+    <Point Id="17" Lat="45.8287992519213" Lng="28.3447265625" IsAirport="true" Name="" />
+    <Point Id="18" Lat="47.4875130089566" Lng="29.794921875" IsAirport="true" Name="" />
+    <Point Id="19" Lat="46.890231573594" Lng="32.4755859375" IsAirport="false" Name="" />
+    <Point Id="20" Lat="47.5172006978394" Lng="25.576171875" IsAirport="false" Name="" />
+    <Point Id="21" Lat="49.0954521625348" Lng="34.1455078125" IsAirport="false" Name="" />
+    <Point Id="23" Lat="49.2964716026581" Lng="28.7841796875" IsAirport="true" Name="" />
+  </Points>
+  <Connections>
+    <Connection From="1" To="6" />
+    <Connection From="6" To="0" />
+    <Connection From="6" To="5" />
+    <Connection From="3" To="1" />
+    <Connection From="7" To="10" />
+    <Connection From="7" To="11" />
+    <Connection From="10" To="11" />
+    <Connection From="8" To="11" />
+    <Connection From="14" To="13" />
+    <Connection From="3" To="13" />
+    <Connection From="2" To="5" />
+    <Connection From="15" To="5" />
+    <Connection From="0" To="15" />
+    <Connection From="8" To="1" />
+    <Connection From="10" To="18" />
+    <Connection From="18" To="3" />
+    <Connection From="6" To="18" />
+    <Connection From="17" To="18" />
+    <Connection From="20" To="23" />
+    <Connection From="7" To="20" />
+    <Connection From="1" To="23" />
+    <Connection From="11" To="23" />
+    <Connection From="23" To="3" />
+    <Connection From="17" To="2" />
+    <Connection From="17" To="19" />
+    <Connection From="19" To="14" />
+    <Connection From="3" To="2" />
+    <Connection From="19" To="2" />
+    <Connection From="18" To="19" />
+  </Connections>
+</StorageModel>

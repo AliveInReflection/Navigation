@@ -5,182 +5,230 @@
         xmlns:gmap="clr-namespace:GMap.NET.WindowsForms;assembly=GMap.NET.WindowsForms"
         xmlns:oxy="http://oxyplot.org/wpf"
         xmlns:oxyPlot="clr-namespace:OxyPlot;assembly=OxyPlot"
-        Title="MainWindow" MinHeight="650" MinWidth="800" Height="620" Width="800" Background="#1f454d">
+        Title="MainWindow" MinHeight="650" MinWidth="1000" Height="620" Width="800" Background="SlateGray">
+
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="Transparent"></Setter>
+            <Setter Property="Foreground" Value="White"></Setter>
+            <Setter Property="FontSize" Value="11"></Setter>
+            <Setter Property="FontWeight" Value="Bold"></Setter>
+            <Setter Property="Height" Value="20"></Setter>
+            <Setter Property="MinWidth" Value="50"></Setter>
+            <Setter Property="Margin" Value="10 0"></Setter>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border BorderBrush="White" BorderThickness="1" CornerRadius="3">
+                            <ContentPresenter x:Name="contentPresenter" ContentTemplate="{TemplateBinding ContentTemplate}" Content="{TemplateBinding Content}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" Margin="{TemplateBinding Padding}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
     <Grid x:Name="MainGrid">
         <Grid.RowDefinitions>
             <RowDefinition></RowDefinition>
-            <RowDefinition Height="40"></RowDefinition>
             <RowDefinition Height="20"></RowDefinition>
         </Grid.RowDefinitions>
-        <TabControl Grid.Row="0" Background="#d9d7ca">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="75*"></ColumnDefinition>
+            <ColumnDefinition Width="280"></ColumnDefinition>
+        </Grid.ColumnDefinitions>
 
-            <TabControl.Resources>
-                <Style TargetType="{x:Type TabItem}">
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="{x:Type TabItem}">
-                                <Grid>
-                                    <Border Name="Border" Background="#FF6E6C67" Margin="4,2,0,0" BorderBrush="Black" BorderThickness="1,1,1,0" CornerRadius="10 10 0 0">
-                                        <ContentPresenter x:Name="ContentSite" ContentSource="Header" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="2,10,10,2" RecognizesAccessKey="True"/>
-                                    </Border>
-                                    <Rectangle Height="0" Width="100" Margin="0,0,0,0" Stroke="Black" VerticalAlignment="Bottom" HorizontalAlignment="Right" StrokeThickness="0" Fill="#FFD4D0C8"/>
-                                </Grid>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsSelected" Value="True">
-                                        <Setter TargetName="Border" Property="Background" Value="#FFD4D0C8" />
-                                        <Setter Property="Foreground" Value="SaddleBrown"></Setter>
-                                    </Trigger>
-                                    <Trigger Property="IsEnabled" Value="False">
-                                        <Setter TargetName="Border" Property="Background" Value="#FF6E6C67" />
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                    
-                    <Setter Property="Height" Value="35" />
-                </Style>
-            </TabControl.Resources>
-
-            <TabItem Header="Map"  FontSize="14">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition x:Name="MapContainer"></ColumnDefinition>
-                        <ColumnDefinition Width="30"></ColumnDefinition>
-                    </Grid.ColumnDefinitions>
-                    <WindowsFormsHost Grid.Column="0" Margin="5">
-                        <gmap:GMapControl x:Name="Map">
-                        </gmap:GMapControl>
-                    </WindowsFormsHost>
-                    <Slider Grid.Column="1" x:Name="ZoomSlider" Value="2" Minimum="2" Maximum="20" Orientation="Vertical" HorizontalAlignment="Center" Margin="5" ValueChanged="OnZoomSliderValueChanged"></Slider>
-                </Grid>
-            </TabItem>
-
-            <TabItem Header="Graphs"  FontSize="14">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="5*"></RowDefinition>
-                        <RowDefinition Height="5*"></RowDefinition>
-                    </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="3*"></ColumnDefinition>
-                        <ColumnDefinition Width="3*"></ColumnDefinition>
-                        <ColumnDefinition Width="3*"></ColumnDefinition>
-                    </Grid.ColumnDefinitions>
-
-                    <oxy:Plot Grid.Column="0" Grid.Row="0" x:Name="TrajectoryPlot" Title="Trajectory"  Height="240" MinHeight="240" Margin="1" Padding="0 0 10 0" Background="#d9d7ca" BorderBrush="#73604f" BorderThickness="2">
-                        <oxy:Plot.Axes>
-                            <oxy:LinearAxis Position="Bottom" Title="L, °"/>
-                            <oxy:LinearAxis Position="Left" Title="B, °"/>
-                        </oxy:Plot.Axes>
-                        <oxy:Plot.Series>
-                            <oxy:LineSeries x:Name="TrajectoryPoints"></oxy:LineSeries>
-                        </oxy:Plot.Series>
-                    </oxy:Plot>
-
-                    <oxy:Plot Grid.Column="1" Grid.Row="0" x:Name="SpeedPlot" Title="Speed"  Height="240" MinHeight="240" Margin="1" Padding="0 0 10 0" Background="#d9d7ca" BorderBrush="#73604f" BorderThickness="2">
-                        <oxy:Plot.Axes>
-                            <oxy:LinearAxis Position="Bottom" Title="t, s"/>
-                            <oxy:LinearAxis Position="Left" Title="V, m/s"/>
-                        </oxy:Plot.Axes>
-                        <oxy:Plot.Series>
-                            <oxy:LineSeries x:Name="SpeedPoints"></oxy:LineSeries>
-                        </oxy:Plot.Series>
-                    </oxy:Plot>
-
-                    <oxy:Plot Grid.Column="2" Grid.Row="0" x:Name="HeightPlot" Title="Height"  Height="240" MinHeight="240" Margin="1" Padding="0 0 10 0" Background="#d9d7ca" BorderBrush="#73604f" BorderThickness="2">
-                        <oxy:Plot.Axes>
-                            <oxy:LinearAxis Position="Bottom" Title="t, s"/>
-                            <oxy:LinearAxis Position="Left" Title="H, m"/>
-                        </oxy:Plot.Axes>
-                        <oxy:Plot.Series>
-                            <oxy:LineSeries x:Name="HeightPoints"></oxy:LineSeries>
-                        </oxy:Plot.Series>
-                    </oxy:Plot>
-
-                    <oxy:Plot Grid.Column="0" Grid.Row="1" x:Name="PathPlot" Title="Path"  Height="240" MinHeight="240" Margin="1" Padding="0 0 10 0" Background="#d9d7ca" BorderBrush="#73604f" BorderThickness="2">
-                        <oxy:Plot.Axes>
-                            <oxy:LinearAxis Position="Bottom" Title="t, s"/>
-                            <oxy:LinearAxis Position="Left" Title="L, m/s"/>
-                        </oxy:Plot.Axes>
-                        <oxy:Plot.Series>
-                            <oxy:LineSeries x:Name="PathPoints"></oxy:LineSeries>
-                        </oxy:Plot.Series>
-                    </oxy:Plot>
-
-                    <oxy:Plot Grid.Column="1" Grid.Row="1" x:Name="CoursePlot" Title="Course"  Height="240" MinHeight="240" Margin="1" Padding="0 0 10 0" Background="#d9d7ca" BorderBrush="#73604f" BorderThickness="2">
-                        <oxy:Plot.Axes>
-                            <oxy:LinearAxis Position="Bottom" Title="t, s"/>
-                            <oxy:LinearAxis Position="Left" Title="α, °"/>
-                        </oxy:Plot.Axes>
-                        <oxy:Plot.Series>
-                            <oxy:LineSeries x:Name="CoursePoints"></oxy:LineSeries>
-                        </oxy:Plot.Series>
-                    </oxy:Plot>
-
-                    <StackPanel Grid.Row="1" Grid.Column="2" Margin="1">
-                        <Label x:Name="TotalPathLabel" Margin="20 20 0 0">Total path: N/A</Label>
-                        <Label x:Name="AverageSpeedLabel" Margin="20 0">Average speed: N/A</Label>
-                        <Label x:Name="MinSpeedLabel" Margin="20 0">Min speed: N/A</Label>
-                        <Label x:Name="MaxSpeedLabel" Margin="20 0">Max speed: N/A</Label>
-                        <Label x:Name="MinHeightLabel" Margin="20 0">Min height: N/A</Label>
-                        <Label x:Name="MaxHeightLabel" Margin="20 0">Max height: N/A</Label>
-                        <Label x:Name="FlightTimeLabel" Margin="20 0">Flight time: N/A</Label>
-                    </StackPanel>
-
-                </Grid>
-                
-            </TabItem>
-            
-            <TabItem Header="Statistics" FontSize="14">
-
-                <DataGrid x:Name="Table" Background="#d9d7ca">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="№" IsReadOnly="True" Binding="{Binding Path=Number}"></DataGridTextColumn>
-                        <DataGridTextColumn Header="Latitude" IsReadOnly="True" Binding="{Binding Path=Latitude}"></DataGridTextColumn>
-                        <DataGridTextColumn Header="Longitude" IsReadOnly="True" Binding="{Binding Path=Longitude}"></DataGridTextColumn>
-                        <DataGridTextColumn Header="Height, m" IsReadOnly="True" Binding="{Binding Path=Height}"></DataGridTextColumn>
-                        <DataGridTextColumn Header="Time" IsReadOnly="True" Binding="{Binding Path=Time}"></DataGridTextColumn>
-                        <DataGridTextColumn Header="Speed, m/s" IsReadOnly="True" Binding="{Binding Path=Speed}"></DataGridTextColumn>
-                        <DataGridTextColumn Header="Path, m" IsReadOnly="True" Binding="{Binding Path=Path}"></DataGridTextColumn>
-                        <DataGridTextColumn Header="Course, °" IsReadOnly="True" Binding="{Binding Path=Course}"></DataGridTextColumn>
-                        <DataGridTextColumn Header="Nomeclature" IsReadOnly="True" Binding="{Binding Path=Nomenclature}"></DataGridTextColumn>
-                    </DataGrid.Columns>
-                    <DataGrid.ColumnHeaderStyle>
-                        <Style TargetType="{x:Type DataGridColumnHeader}">
-                            <Setter Property="FontWeight"  Value="Bold" />
-                            <Setter Property="Foreground"  Value="White" />
-                            <Setter Property="Background" Value="#3c8d93"></Setter>
-                            <Setter Property="BorderBrush"  Value="#1f454d" />
-                            <Setter Property="BorderThickness"  Value="1" />
-                            <Setter Property="Padding"  Value="10 3" />
-                        </Style>
-                    </DataGrid.ColumnHeaderStyle>
-                </DataGrid>
-                
-            </TabItem>
-        </TabControl>
-
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="0" Grid.Column="0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="6*"></ColumnDefinition>
-                <ColumnDefinition Width="4*"></ColumnDefinition>
+                <ColumnDefinition x:Name="MapContainer"></ColumnDefinition>
+                <ColumnDefinition Width="30"></ColumnDefinition>
             </Grid.ColumnDefinitions>
-            <StackPanel Grid.Column="0" Orientation="Horizontal">
-                <TextBox x:Name="FilePathTextBox" Width="200" Margin="10" BorderBrush="White">Choose file...</TextBox>
-                <Button x:Name="BrowseButton" Margin="10" Foreground="White" FontWeight="Bold" Width="80" BorderBrush="White" Background="SlateGray" Click="ChooseFileButton_Click">Choose file</Button>
-                <Button x:Name="OpenButton" Margin="10" Foreground="White" FontWeight="Bold" Width="80" BorderBrush="White" Background="SlateGray" Click="OpenFileButton_Click">Open</Button>
-            </StackPanel>
-            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button x:Name="StartButton" Margin="10" Foreground="White" FontWeight="Bold" Width="80" BorderBrush="White" Background="SlateGray" Click="StartButton_Click">Start</Button>
-                <Button x:Name="StopButton" Margin="10" Foreground="White" FontWeight="Bold" Width="80" BorderBrush="White" Background="SlateGray" Click="StopButton_Click">Stop</Button>
-                <Button x:Name="RestartButton" Margin="10" Foreground="White" FontWeight="Bold" Width="80" BorderBrush="White" Background="SlateGray" Click="RestartButton_Click">Restart</Button>
-            </StackPanel>
+            <WindowsFormsHost Grid.Column="0" Margin="5">
+                <gmap:GMapControl x:Name="Map">
+                </gmap:GMapControl>
+            </WindowsFormsHost>
+            <Slider Grid.Column="1" x:Name="ZoomSlider" Value="2" Minimum="2" Maximum="20" Orientation="Vertical" HorizontalAlignment="Center" Margin="5" ValueChanged="OnZoomSliderValueChanged"></Slider>
         </Grid>
-        <DockPanel Grid.Row="2" Background="#3b3535" HorizontalAlignment="Left" Width="792">
-            <Label x:Name="StatusLabel" DockPanel.Dock="Left" Foreground="White" Margin="10 -5">File not opened...</Label>
-            <Label x:Name="BadMeasurementsLabel" DockPanel.Dock="Right"  Foreground="White" Margin="10 -5" HorizontalAlignment="Right">Bad measurements: 0</Label>
+
+        <StackPanel Grid.Column="1" Grid.Row="0">
+            <TabControl TabStripPlacement="Right" Background="Transparent" BorderThickness="0" SelectionChanged="Selector_OnSelectionChanged">
+                <TabControl.Resources>
+                    <Style TargetType="{x:Type TabItem}">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="{x:Type TabItem}">
+                                    <Grid>
+                                        <Border Name="Border" Background="Transparent" Margin="2,2,-8,0" BorderBrush="White" BorderThickness="1,1,1,1" CornerRadius="6">
+                                            <ContentPresenter x:Name="ContentSite" ContentSource="Header" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,2,6,2" RecognizesAccessKey="True"/>
+                                        </Border>
+                                        <Rectangle Height="200" Width="10" Margin="0,0,-10,0" Stroke="Black" VerticalAlignment="Bottom" HorizontalAlignment="Right" StrokeThickness="0" Fill="#FFD4D0C8"/>
+                                    </Grid>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter Property="FontWeight" Value="Bold" />
+                                            <Setter TargetName="Border" Property="Background" Value="White" />
+                                            <Setter Property="Foreground" Value="Black" />
+                                        </Trigger>
+                                        <Trigger Property="IsEnabled" Value="False">
+                                            <Setter TargetName="Border" Property="Background" Value="#FF6E6C67" />
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="true">
+                                            <Setter Property="FontWeight" Value="Bold" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter Property="HeaderTemplate">
+                            <Setter.Value>
+                                <DataTemplate>
+                                    <ContentPresenter Content="{TemplateBinding Content}">
+                                        <ContentPresenter.LayoutTransform>
+                                            <RotateTransform Angle="270" />
+                                        </ContentPresenter.LayoutTransform>
+                                    </ContentPresenter>
+                                </DataTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter Property="Foreground" Value="White" />
+                        <Setter Property="Height" Value="90" />
+                        <Setter Property="Margin" Value="0" />
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="FontFamily" Value="DokChampa" />
+                        <Setter Property="FontSize" Value="12" />
+                        <Setter Property="VerticalAlignment" Value="Top" />
+                        <Setter Property="HorizontalAlignment" Value="Right" />
+                        <Setter Property="UseLayoutRounding" Value="False" />
+                    </Style>
+                    <Style x:Key="tabGrids">
+                        <Setter Property="Grid.Background" Value="#FFE5E5E5" />
+                        <Setter Property="Grid.Margin" Value="6,10,10,10" />
+                    </Style>
+                </TabControl.Resources>
+                <TabItem Header="Path">
+                    <TabItem.Content>
+                        <GroupBox Margin="5 10" Height="120" VerticalAlignment="Top">
+                            <GroupBox.Header>
+                                <Label FontWeight="Bold" Foreground="MidnightBlue">View optimal path</Label>
+                            </GroupBox.Header>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="80"></ColumnDefinition>
+                                    <ColumnDefinition Width="6*"></ColumnDefinition>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="27"></RowDefinition>
+                                    <RowDefinition Height="27"></RowDefinition>
+                                    <RowDefinition Height="27"></RowDefinition>
+                                </Grid.RowDefinitions>
+
+                                <Label Grid.Row="0" Grid.Column="0" FontSize="14" FontWeight="bold">From:</Label>
+                                <Label Grid.Row="0" Grid.Column="1" FontSize="14" x:Name="PathFromLabel">undefined</Label>
+                                <Label Grid.Row="1" Grid.Column="0"  FontSize="14" FontWeight="bold">To:</Label>
+                                <Label Grid.Row="1" Grid.Column="1" FontSize="14" x:Name="PathToLabel">undefined</Label>
+                                <Button Grid.Row="2" Grid.Column="0" Click="Clear_Click">Clear</Button>
+                                <Button Grid.Row="2" Grid.Column="1" x:Name="ShowPathButton" Click="ShowPath_Click">Show path</Button>
+                            </Grid>
+                        </GroupBox>
+                    </TabItem.Content>
+                </TabItem>
+                <TabItem Header="Points">
+                    <TabItem.Content>
+                        <StackPanel>
+                            <GroupBox Margin="5 10">
+                                <GroupBox.Header>
+                                    <Label FontWeight="Bold" Foreground="MidnightBlue">Add point</Label>
+                                </GroupBox.Header>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="80"></ColumnDefinition>
+                                        <ColumnDefinition Width="6*"></ColumnDefinition>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition></RowDefinition>
+                                        <RowDefinition></RowDefinition>
+                                        <RowDefinition></RowDefinition>
+                                        <RowDefinition></RowDefinition>
+                                        <RowDefinition></RowDefinition>
+                                    </Grid.RowDefinitions>
+
+                                    <Label Grid.Row="0" Grid.Column="0" FontSize="14" FontWeight="bold">Latitude:</Label>
+                                    <Label Grid.Row="0" Grid.Column="1" FontSize="14" x:Name="CurrentLatLabel">undefined</Label>
+                                    <Label Grid.Row="1" Grid.Column="0"  FontSize="14" FontWeight="bold">Longitude:</Label>
+                                    <Label Grid.Row="1" Grid.Column="1" FontSize="14" x:Name="CurrentLngLabel">undefined</Label>
+                                    <Label Grid.Row="2" Grid.Column="0" FontSize="14" FontWeight="bold">Airport:</Label>
+                                    <CheckBox x:Name="IsAirpoirtCheckbox" Grid.Row="2" Grid.Column="1" Margin="10"></CheckBox>
+                                    <Label Grid.Row="3" Grid.Column="0" FontSize="14" FontWeight="bold">Name:</Label>
+                                    <TextBox Grid.Row="3" Grid.Column="1" FontSize="14" x:Name="CurrentPointName" FontWeight="Normal" VerticalContentAlignment="Center"></TextBox>
+                                    <Button Grid.Row="4" Grid.Column="1" x:Name="AddPoint" Margin="10" Click="AddPoint_Click">Add point</Button>
+                                </Grid>
+                            </GroupBox>
+                            <GroupBox Margin="5 10">
+                                <GroupBox.Header>
+                                    <Label FontWeight="Bold" Foreground="MidnightBlue">Edit point</Label>
+                                </GroupBox.Header>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="80"></ColumnDefinition>
+                                        <ColumnDefinition Width="6*"></ColumnDefinition>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition></RowDefinition>
+                                        <RowDefinition></RowDefinition>
+                                        <RowDefinition></RowDefinition>
+                                        <RowDefinition></RowDefinition>
+                                    </Grid.RowDefinitions>
+
+                                    <Label Grid.Row="0" Grid.Column="0" FontSize="14" FontWeight="bold">Id:</Label>
+                                    <Label Grid.Row="0" Grid.Column="1" FontSize="14" x:Name="UpdatePointId">undefined</Label>
+                                    <Label Grid.Row="1" Grid.Column="0" FontSize="14" FontWeight="bold">Airport:</Label>
+                                    <CheckBox x:Name="IsAirpoirtUpdateCheckbox" Grid.Row="1" Grid.Column="1" Margin="10"></CheckBox>
+                                    <Label Grid.Row="2" Grid.Column="0" FontSize="14" FontWeight="bold">Name:</Label>
+                                    <TextBox Grid.Row="2" Grid.Column="1" FontSize="14" x:Name="UpdatePointName" FontWeight="Normal" VerticalContentAlignment="Center"></TextBox>
+                                    <Button Grid.Row="3" Grid.Column="0" x:Name="DeletePoint" Margin="10" Click="DeletePoint_Click">Delete</Button>
+                                    <Button Grid.Row="3" Grid.Column="1" x:Name="UpdatePoint" Margin="10" Click="UpdatePoint_Click">Update</Button>
+                                </Grid>
+                            </GroupBox>
+                        </StackPanel>
+                    </TabItem.Content>
+                </TabItem>
+                <TabItem Header="Connections">
+                    <TabItem.Content>
+                        <GroupBox Margin="5 10" Height="150" VerticalAlignment="Top">
+                            <GroupBox.Header>
+                                <Label FontWeight="Bold" Foreground="MidnightBlue">Edit connections</Label>
+                            </GroupBox.Header>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="80"></ColumnDefinition>
+                                    <ColumnDefinition Width="6*"></ColumnDefinition>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="27"></RowDefinition>
+                                    <RowDefinition Height="27" ></RowDefinition>
+                                    <RowDefinition Height="27"></RowDefinition>
+                                    <RowDefinition Height="27"></RowDefinition>
+                                </Grid.RowDefinitions>
+
+                                <Label Grid.Row="0" Grid.Column="0" FontSize="14" FontWeight="bold">From:</Label>
+                                <Label Grid.Row="0" Grid.Column="1" FontSize="14" x:Name="NewConnectionFromLabel">undefined</Label>
+                                <Label Grid.Row="1" Grid.Column="0" FontSize="14" FontWeight="bold">To:</Label>
+                                <Label Grid.Row="1" Grid.Column="1" FontSize="14" x:Name="NewConnectionToLabel">undefined</Label>
+                                <Button Grid.Row="2" Grid.Column="0" x:Name="ClearConnection" Click="Clear_Click">Clear</Button>
+                                <Button Grid.Row="2" Grid.Column="1" x:Name="AddConnection" Click="AddConnection_Click">Add</Button>
+                                <Button Grid.Row="3" Grid.Column="0" x:Name="DeleteConnection" Click="DeleteConnection_Click">Delete</Button>
+                            </Grid>
+                        </GroupBox>
+                    </TabItem.Content>
+                </TabItem>
+            </TabControl>
+
+
+        </StackPanel>
+
+        <DockPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="1" Background="#3b3535" HorizontalAlignment="Left" Width="792">
+            <Label x:Name="StatusLabel" DockPanel.Dock="Left" Foreground="White" Margin="10 -5">Ready...</Label>
         </DockPanel>
     </Grid>
-    
+
 </Window>
