@@ -26,6 +26,7 @@ namespace Navigation
         private PointLatLng _focus;
         private GMapMarker _currentPoint;
         private CustomMarker _selectedMarker;
+        private OptimalPathesModel _optimalPathes;
 
         public int Zoom { get; set; }
         private GMapOverlay _pointsOverlay;
@@ -120,6 +121,8 @@ namespace Navigation
             CurrentLatLabel.Content = Undefined;
             CurrentLngLabel.Content = Undefined;
 
+            _optimalPathes = null;
+
             UpdateMinPathsOverlay();
 
             SetStatus(Ready);
@@ -198,6 +201,8 @@ namespace Navigation
             ClearConnectionFields();
             ClearPathFields();
             UpdateMinPathsOverlay();
+
+            _optimalPathes = null;
 
             SetStatus(Ready);
         }
@@ -298,18 +303,20 @@ namespace Navigation
 
             try
             {
-                var optimalPath = _service.GetOptimalPath(from, to);
-                UpdateMinPathsOverlay(optimalPath);
+                _optimalPathes = _service.GetOptimalPath(from, to);
+                UpdateMinPathsOverlay();
             }
             catch(NoWayException)
             {
                 SetStatus("There is no way between these airports");
                 ClearPathFields();
+                _optimalPathes = null;
                 UpdateMinPathsOverlay();
                 return;
             }
 
             ClearPathFields();
+
             SetStatus(Ready);
         }
 
@@ -347,20 +354,50 @@ namespace Navigation
             }
         }
 
-        private void UpdateMinPathsOverlay(IEnumerable<IEnumerable<PointLatLng>> path = null)
+        private void UpdateMinPathsOverlay()
         {
-            _minPathOverlay.Polygons.Clear();
+            if (_minPathOverlay != null)
+            {
+                _minPathOverlay.Polygons.Clear();
+            }
 
-            if (path == null)
+            if (_optimalPathes == null)
             {
                 return;
             }
 
-            foreach (var line in path)
+            if (_optimalPathes.Third != null)
             {
-                var poly = new GMapPolygon(line.ToList(), "Connection");
-                poly.Stroke = new Pen(Color.DarkGreen, 4);
-                _minPathOverlay.Polygons.Add(poly);
+                foreach (var line in _optimalPathes.Third.Track)
+                {
+                    var poly = new GMapPolygon(line.ToList(), _optimalPathes.Third.Distance.ToString());
+                    poly.Stroke = new Pen(Color.Red, 3f);
+                    _minPathOverlay.Polygons.Add(poly);
+                    poly.IsVisible = RedPathCheckbox.IsChecked.Value;
+                }
+            }
+
+            if (_optimalPathes.Second != null)
+            {
+                foreach (var line in _optimalPathes.Second.Track)
+                {
+                    var poly = new GMapPolygon(line.ToList(), _optimalPathes.Second.Distance.ToString());
+                    poly.Stroke = new Pen(Color.Yellow, 3f);
+                    _minPathOverlay.Polygons.Add(poly);
+                    poly.IsVisible = YellowPathCheckbox.IsChecked.Value;
+                }
+            }
+
+            if (_optimalPathes.First != null)
+            {
+                foreach (var line in _optimalPathes.First.Track)
+                {
+                    var poly = new GMapPolygon(line.ToList(), _optimalPathes.First.Distance.ToString());
+                    poly.Stroke = new Pen(Color.DarkGreen, 3f);
+                    _minPathOverlay.Polygons.Add(poly);
+                    poly.IsVisible = GreenPathCheckbox.IsChecked.Value;
+
+                }
             }
         }
 
@@ -401,6 +438,11 @@ namespace Navigation
 
             PathFromLabel.Content = Undefined;
             PathToLabel.Content = Undefined;
+        }
+
+        private void OptimalPath_OnChecked(object sender, RoutedEventArgs e)
+        {
+            UpdateMinPathsOverlay();
         }
     }
 }

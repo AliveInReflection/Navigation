@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Device.Location;
+using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using GMap.NET;
 using Navigation.Infrastructure;
 using Navigation.Models;
@@ -12,7 +10,6 @@ namespace Navigation.Business
 {
     public class Service
     {
-        private const Decimal Inf = 10000000000000;
         private readonly Repository _repository;
 
         public Service(Repository repository)
@@ -20,153 +17,187 @@ namespace Navigation.Business
             _repository = repository;
         }
 
-        public IEnumerable<IEnumerable<PointLatLng>> GetOptimalPath(int idFrom, int idTo)
+        public OptimalPathesModel GetOptimalPath(int idFrom, int idTo)
         {
-            var allPoints = _repository.GetPoints();
             var connections = _repository.GetConnections();
-
-            var nodes = allPoints.Select((p, i) => new KeyValuePair<int, Point>(i, p))
-                .ToDictionary(x => x.Key, x => x.Value);
 
             var distances = connections.Select(c =>
             {
-                var from = _repository.GetPoint(c.From).ToGeoCoordinate();
-                var to = _repository.GetPoint(c.To).ToGeoCoordinate();
-                decimal distance = (decimal)from.GetDistanceTo(to);
+                var from = _repository.GetPoint(c.From);
+                var to = _repository.GetPoint(c.To);
+                decimal distance = (decimal)from.ToGeoCoordinate()
+                                                .GetDistanceTo(to.ToGeoCoordinate());
 
                 return new DistanceModel()
                 {
-                    From = nodes.First(x => x.Value.Id == c.From).Key,
-                    To = nodes.First(x => x.Value.Id == c.To).Key,
+                    From = from,
+                    To = to,
                     Distance = distance
                 };
+
             }).ToList();
 
-            var size = nodes.Count;
-            var graph = InitGraph(size, distances);
+            foreach (var distance in distances.ToList())
+            {
+                distances.Add(distance.Reverse());
+            }
 
-            bool[] used = new bool[size];
-            decimal[] path = Enumerable.Range(0, size).Select(_ => Inf).ToArray();
-            int[] travel = new int[size];
+            var endingIds = distances.Where(x => x.To.Id == idTo).Select(x => x.From.Id).ToList();
 
-            var startIndex = nodes.First(x => x.Value.Id == idFrom).Key;
-            var endIndex = nodes.First(x => x.Value.Id == idTo).Key;
+            var tracks = distances.Where(x => x.From.Id == idFrom).Select(x => new PathModel()
+            {
+                Points = new[] {x.From, x.To},
+                Distance = x.Distance
+            }).ToList();
 
-            path[startIndex] = 0;
-            used[startIndex] = true;
+            var resultTracks = tracks.Where(x => x.Points.Last().Id == idTo).ToList();
+            resultTracks.ForEach(x => tracks.Remove(x));
 
-            FindMinPath(graph, path, used, travel, startIndex, endIndex);
+            Recurse(tracks, resultTracks, distances, endingIds, idTo);
 
-            if (path[endIndex] >= Inf)
+
+            if (!resultTracks.Any())
             {
                 throw new NoWayException();
             }
 
-            var result = RestoreTrack(nodes, travel, startIndex, endIndex);
+            var result = PrepareResult(resultTracks.OrderBy(x => x.Distance).Take(3).ToList());
 
             return result;
         }
 
-        private static List<IEnumerable<PointLatLng>> RestoreTrack(Dictionary<int, Point> nodes, int[] travel, int startIndex, int endIndex)
+        private OptimalPathesModel PrepareResult(List<PathModel> pathes)
         {
-            var track = new List<int>();
-            int index = endIndex;
-            track.Insert(0, index);
+            var result = new OptimalPathesModel();
 
-            while (index != startIndex)
+            var path = pathes.FirstOrDefault();
+            result.First = new OptimalPathModel()
             {
-                track.Insert(0, travel[index]);
-                index = travel[index];
+                Track = GetPoly(path.Points),
+                Distance = path.Distance
+            };
+
+            pathes.Remove(path);
+            path = pathes.FirstOrDefault();
+
+            if (path == null)
+            {
+                return result;
             }
 
-            var pointsTrack = track.Select(x => nodes[x].ToMapPoint()).ToList();
+            result.Second = new OptimalPathModel()
+            {
+                Track = GetPoly(path.Points),
+                Distance = path.Distance
+            };
 
-            var result = pointsTrack.Where((t, i) => i < pointsTrack.Count - 1)
-                .Select((e, i) => new[] { e, pointsTrack[i + 1] }.AsEnumerable())
+            pathes.Remove(path);
+            path = pathes.FirstOrDefault();
+
+            if (path == null)
+            {
+                return result;
+            }
+
+            result.Third = new OptimalPathModel()
+            {
+                Track = GetPoly(path.Points),
+                Distance = path.Distance
+            };
+
+            return result;
+        }
+
+        private IEnumerable<IEnumerable<PointLatLng>> GetPoly(IList<Point> pointsTrack)
+        {
+            var result = pointsTrack
+                .Where((t, i) => i < pointsTrack.Count - 1)
+                .Select((e, i) => new[] { e.ToMapPoint(), pointsTrack[i + 1].ToMapPoint() }.AsEnumerable())
                 .ToList();
 
             return result;
         }
 
-        private void FindMinPath(decimal[,] graph, decimal[] path, bool[] used, int[] travel, int startIndex, int endIndex)
+        private void Recurse(IList<PathModel> tracks, IList<PathModel> resultTracks, IList<DistanceModel> distances, IEnumerable<int> endingIds, int idTo)
         {
-            var size = path.Length;
-            var currentIndex = startIndex;
-
-            for (int i = 0; i < size; i++)
+            if (!tracks.Any())
             {
-                for (int j = 0; j < size; j++)
-                {
-                    var currentLength = path[currentIndex] + graph[currentIndex, j];
-                    if (graph[currentIndex, j] != 0 &&
-                        currentLength < path[j] &&
-                        !used[j])
-                    {
-                        path[j] = currentLength;
-                        travel[j] = currentIndex;
-                    }
-                }
-
-                used[currentIndex] = true;
-
-                if (currentIndex == endIndex)
-                {
-                    break;
-                }
-
-                try
-                {
-                    currentIndex = FindIndexOmMinPath(path, used);
-                }
-                catch
-                {
-                    break;
-                }
-            }
-        }
-
-        private int FindIndexOmMinPath(decimal[] path, bool[] used)
-        {
-            var min = path.Where((x, i) => !used[i]).Min();
-
-            var index = path.Select((x, i) => new KeyValuePair<int, decimal>(i, x)).First(x => x.Value == min).Key;
-
-            return index;
-        }
-
-        private decimal[,] InitGraph(int size, IEnumerable<DistanceModel> distances)
-        {
-            var graph = new decimal[size, size];
-
-            for (int i = 0; i < size; i++)
-            {
-                for (int j = 0; j < size; j++)
-                {
-                    if (i == j)
-                    {
-                        graph[i, j] = 0;
-                    }
-                    else
-                    {
-                        graph[i, j] = Inf;
-                    }
-                }
+                return;
             }
 
-            foreach (var distance in distances)
+            var currentTracks = tracks.ToList();
+            tracks.Clear();
+
+            foreach (var track in currentTracks)
             {
-                graph[distance.From, distance.To] = distance.Distance;
-                graph[distance.To, distance.From] = distance.Distance;
+                var edges = distances.Where(x => x.From.Id == track.Points.Last().Id && track.Points.All(y => x.To.Id != y.Id)).ToList();
+                
+
+                edges.ForEach(p =>
+                {
+                    var currentPath = new PathModel(track, p.To, p.Distance);
+                    if (p.To.Id == idTo)
+                    {
+                        resultTracks.Add(currentPath);
+                        if (resultTracks.Count > 3)
+                        {
+                            resultTracks.Remove(resultTracks.OrderByDescending(t => t.Distance).First());
+                        }
+                        return;
+                    }
+
+                    if (track.Points.Any(point => point.Id == p.To.Id))
+                    {
+                        return;
+                    }
+
+                    if (resultTracks.Count == 3)
+                    {
+                        var longestPath = resultTracks.OrderByDescending(t => t.Distance).First();
+                        if (currentPath.Distance >= longestPath.Distance)
+                        {
+                            return;
+                        }
+                    }
+                    tracks.Add(currentPath);
+                });
             }
 
-            return graph;
+            Recurse(tracks, resultTracks, distances, endingIds, idTo);
         }
 
         private class DistanceModel
         {
-            public int From { get; set; }
-            public int To { get; set; }
+            public Point From { get; set; }
+            public Point To { get; set; }
             public decimal Distance { get; set; }
+
+            public DistanceModel Reverse()
+            {
+                return new DistanceModel()
+                {
+                    From = To,
+                    To = From,
+                    Distance = Distance
+                };
+            }
+        }
+
+        private class PathModel
+        {
+            public IList<Point> Points { get; set; }
+            public decimal Distance { get; set; }
+
+            public PathModel()
+            {
+                
+            }
+
+            public PathModel(PathModel prevPath, Point point, decimal distance)
+            {
+                Points = new List<Point>(prevPath.Points) {point};
+                Distance = prevPath.Distance + distance;
+            }
         }
     }
 }

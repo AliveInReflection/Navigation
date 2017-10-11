@@ -120,6 +120,7 @@
     <Compile Include="Models\Connection.cs" />
     <Compile Include="Models\CustomMarker.cs" />
     <Compile Include="Models\NoWayException.cs" />
+    <Compile Include="Models\OptimalPathesModel.cs" />
     <Compile Include="Models\Point.cs" />
     <Compile Include="Models\StorageModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
@@ -211,9 +212,9 @@
     </PublishFile>
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="data.xml">
+    <EmbeddedResource Include="data.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

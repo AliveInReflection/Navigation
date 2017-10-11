@@ -107,29 +107,54 @@
                 </TabControl.Resources>
                 <TabItem Header="Path">
                     <TabItem.Content>
-                        <GroupBox Margin="5 10" Height="120" VerticalAlignment="Top">
-                            <GroupBox.Header>
-                                <Label FontWeight="Bold" Foreground="MidnightBlue">View optimal path</Label>
-                            </GroupBox.Header>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="80"></ColumnDefinition>
-                                    <ColumnDefinition Width="6*"></ColumnDefinition>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="27"></RowDefinition>
-                                    <RowDefinition Height="27"></RowDefinition>
-                                    <RowDefinition Height="27"></RowDefinition>
-                                </Grid.RowDefinitions>
+                        <StackPanel>
+                            <GroupBox Margin="5 10" Height="120" VerticalAlignment="Top">
+                                <GroupBox.Header>
+                                    <Label FontWeight="Bold" Foreground="MidnightBlue">View optimal path</Label>
+                                </GroupBox.Header>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="80"></ColumnDefinition>
+                                        <ColumnDefinition Width="6*"></ColumnDefinition>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="27"></RowDefinition>
+                                        <RowDefinition Height="27"></RowDefinition>
+                                        <RowDefinition Height="27"></RowDefinition>
+                                    </Grid.RowDefinitions>
 
-                                <Label Grid.Row="0" Grid.Column="0" FontSize="14" FontWeight="bold">From:</Label>
-                                <Label Grid.Row="0" Grid.Column="1" FontSize="14" x:Name="PathFromLabel">undefined</Label>
-                                <Label Grid.Row="1" Grid.Column="0"  FontSize="14" FontWeight="bold">To:</Label>
-                                <Label Grid.Row="1" Grid.Column="1" FontSize="14" x:Name="PathToLabel">undefined</Label>
-                                <Button Grid.Row="2" Grid.Column="0" Click="Clear_Click">Clear</Button>
-                                <Button Grid.Row="2" Grid.Column="1" x:Name="ShowPathButton" Click="ShowPath_Click">Show path</Button>
-                            </Grid>
-                        </GroupBox>
+                                    <Label Grid.Row="0" Grid.Column="0" FontSize="14" FontWeight="bold">From:</Label>
+                                    <Label Grid.Row="0" Grid.Column="1" FontSize="14" x:Name="PathFromLabel">undefined</Label>
+                                    <Label Grid.Row="1" Grid.Column="0"  FontSize="14" FontWeight="bold">To:</Label>
+                                    <Label Grid.Row="1" Grid.Column="1" FontSize="14" x:Name="PathToLabel">undefined</Label>
+                                    <Button Grid.Row="2" Grid.Column="0" Click="Clear_Click">Clear</Button>
+                                    <Button Grid.Row="2" Grid.Column="1" x:Name="ShowPathButton" Click="ShowPath_Click">Show path</Button>
+                                </Grid>
+                            </GroupBox>
+
+                            <GroupBox Margin="5 10" Height="120" VerticalAlignment="Top" x:Name="PathDetails">
+                                <GroupBox.Header>
+                                    <Label FontWeight="Bold" Foreground="MidnightBlue">Details</Label>
+                                </GroupBox.Header>
+                                <StackPanel>
+                                    <CheckBox x:Name="GreenPathCheckbox" Margin="5" IsChecked="True" Checked="OptimalPath_OnChecked" Unchecked="OptimalPath_OnChecked">
+                                        <StackPanel>
+                                            <Label FontSize="12" Padding="2">Green</Label>
+                                        </StackPanel>
+                                    </CheckBox>
+                                    <CheckBox x:Name="YellowPathCheckbox" Margin="5" IsChecked="True" Checked="OptimalPath_OnChecked" Unchecked="OptimalPath_OnChecked">
+                                        <StackPanel>
+                                            <Label FontSize="12" Padding="2">Yellow</Label>
+                                        </StackPanel>
+                                    </CheckBox>
+                                    <CheckBox x:Name="RedPathCheckbox" Margin="5" IsChecked="True" Checked="OptimalPath_OnChecked" Unchecked="OptimalPath_OnChecked">
+                                        <StackPanel>
+                                            <Label FontSize="12" Padding="2">Red</Label>
+                                        </StackPanel>
+                                    </CheckBox>
+                                </StackPanel>
+                            </GroupBox>
+                        </StackPanel>
                     </TabItem.Content>
                 </TabItem>
                 <TabItem Header="Points">
