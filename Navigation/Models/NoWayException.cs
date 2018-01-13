@@ -8,5 +8,6 @@ namespace Navigation.Models
 {
     public class NoWayException : Exception
     {
+
     }
 }

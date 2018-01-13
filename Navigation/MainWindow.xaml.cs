@@ -28,11 +28,13 @@ namespace Navigation
         private GMapMarker _currentPoint;
         private CustomMarker _selectedMarker;
         private OptimalPathesModel _optimalPathes;
+        private List<int> _ownPath;
 
         public int Zoom { get; set; }
         private GMapOverlay _pointsOverlay;
         private GMapOverlay _connectionsOverlay;
         private GMapOverlay _minPathOverlay;
+        private GMapOverlay _ownPathOverlay;
 
         private CustomMarker _selectedFrom;
         private CustomMarker _selectedTo;
@@ -42,6 +44,7 @@ namespace Navigation
 
         public MainWindow()
         {
+            _ownPath = new List<int>();
             _repository = new Repository();
             _repository.Load();
 
@@ -80,10 +83,12 @@ namespace Navigation
             _pointsOverlay = new GMapOverlay();
             _connectionsOverlay = new GMapOverlay();
             _minPathOverlay = new GMapOverlay();
+            _ownPathOverlay = new GMapOverlay();
 
             Map.Overlays.Add(_pointsOverlay);
             Map.Overlays.Add(_connectionsOverlay);
             Map.Overlays.Add(_minPathOverlay);
+            Map.Overlays.Add(_ownPathOverlay);
 
 
             UpdatePointsOverlay();
@@ -119,6 +124,8 @@ namespace Navigation
             ClearConnectionFields();
             ClearCurrentPointFields();
             ClearMinPathesLength();
+            ClearOwnPath();
+            OwnPathCheckbox.IsChecked = false;
 
             CurrentLatLabel.Content = Undefined;
             CurrentLngLabel.Content = Undefined;
@@ -156,6 +163,12 @@ namespace Navigation
             var markerInfo = (CustomMarker)item;
 
             _selectedMarker = markerInfo;
+
+            if (OwnPathCheckbox.IsChecked == true)
+            {
+                DrawOwnPath();
+                return;
+            }
 
             UpdatePointId.Content = _selectedMarker.Id;
             UpdatePointName.Text = _selectedMarker.Name;
@@ -385,16 +398,17 @@ namespace Navigation
             {
                 var poly = new GMapPolygon(line, "Connection");
                 poly.Stroke = new Pen(Color.CornflowerBlue, 1);
-                _connectionsOverlay.Polygons.Add(poly);
+                //_connectionsOverlay.Polygons.Add(poly);
+                _connectionsOverlay.Routes.Add(new GMapRoute(line, "")
+                {
+                    Stroke = new Pen(Color.CornflowerBlue, 2f)
+                });
             }
         }
 
         private void UpdateMinPathsOverlay()
         {
-            if (_minPathOverlay != null)
-            {
-                _minPathOverlay.Polygons.Clear();
-            }
+            _minPathOverlay?.Polygons.Clear();
 
             if (_optimalPathes == null)
             {
@@ -433,6 +447,17 @@ namespace Navigation
                     poly.IsVisible = GreenPathCheckbox.IsChecked.Value;
 
                 }
+            }
+        }
+
+        private void UpdateOwnPathOverlay(OptimalPathModel ownPathModel)
+        {
+            foreach (var line in ownPathModel.Track)
+            {
+                var poly = new GMapPolygon(line.ToList(), ownPathModel.Distance.ToString());
+                poly.Stroke = new Pen(Color.DarkViolet, 3f);
+                _ownPathOverlay.Polygons.Add(poly);
+                poly.IsVisible = RedPathCheckbox.IsChecked.Value;
             }
         }
 
@@ -479,5 +504,49 @@ namespace Navigation
         {
             UpdateMinPathsOverlay();
         }
+
+        private void ClearOwnPath_Click(object sender, RoutedEventArgs e)
+        {
+            ClearOwnPath();
+        }
+
+        private void ClearOwnPath()
+        {
+            _ownPath.Clear();
+            _ownPathOverlay.Clear();
+            OwnPathLength.Content = "...";
+        }
+        private void DrawOwnPath()
+        {
+            if (_ownPath.Any() == false)
+            {
+                if (_selectedMarker.IsAirport == false)
+                {
+                    SetStatus("Path should start from airport");
+                    return;
+                }
+
+                _ownPath.Add(_selectedMarker.Id);
+                return;
+            }
+
+            _ownPath.Add(_selectedMarker.Id);
+
+            try
+            {
+                var pathModel = _service.ConvertToPathModel(_ownPath);
+                UpdateOwnPathOverlay(pathModel);
+                OwnPathLength.Content = (pathModel.Distance / 1000).ToString("0.000");
+                SetStatus("Ready");
+
+            }
+            catch (NoWayException e)
+            {
+                _ownPath.Remove(_ownPath.Last());
+                SetStatus("There is no way between selected points");
+            }
+        }
+
+
     }
 }

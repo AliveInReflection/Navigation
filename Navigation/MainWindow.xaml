@@ -163,6 +163,26 @@
                                     </CheckBox>
                                 </StackPanel>
                             </GroupBox>
+                            <GroupBox Margin="5 10" Height="120" VerticalAlignment="Top" x:Name="OwnPath">
+                                <GroupBox.Header>
+                                    <Label FontWeight="Bold" Foreground="MidnightBlue">Own path</Label>
+                                </GroupBox.Header>
+                                <DockPanel>
+                                    <StackPanel DockPanel.Dock="Top" Margin="0 10">
+                                        <CheckBox x:Name="OwnPathCheckbox" Margin="5" IsChecked="False" Checked="OptimalPath_OnChecked" Unchecked="OptimalPath_OnChecked">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Label FontSize="12" Padding="2">Own path</Label>
+                                                <Label FontSize="12" Padding="2">[</Label>
+                                                <Label x:Name="OwnPathLength" FontSize="12" Padding="2">...</Label>
+                                                <Label FontSize="12" Padding="2">km]</Label>
+                                            </StackPanel>
+                                        </CheckBox>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Grid.Row="2" Grid.Column="0" Click="ClearOwnPath_Click">Clear</Button>
+                                    </StackPanel>
+                                </DockPanel>
+                            </GroupBox>
                         </StackPanel>
                     </TabItem.Content>
                 </TabItem>

@@ -93,6 +93,20 @@ namespace Navigation.Business
             return _data.Connections;
         }
 
+        public Connection GetConnection(int idFrom, int idTo)
+        {
+            ValidateData();
+
+            var connection = _data.Connections.FirstOrDefault(c => (c.From == idFrom && c.To == idTo) || (c.From == idTo && c.To == idFrom));
+
+            if (connection == null)
+            {
+                throw new NoWayException();
+            }
+
+            return connection;
+        }
+
         public void DeleteConnection(int fromId, int toId)
         {
             ValidateData();

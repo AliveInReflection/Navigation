@@ -69,6 +69,42 @@ namespace Navigation.Business
             return result;
         }
 
+        public OptimalPathModel ConvertToPathModel(IEnumerable<int> pointsIds)
+        {
+            var points = pointsIds.Select(id => _repository.GetPoint(id)).ToList();
+
+            var connections = points
+                .Where((t, i) => i < points.Count - 1)
+                .Select((e, i) => _repository.GetConnection(e.Id, points[i + 1].Id)).AsEnumerable()
+                .ToList();
+
+            var distances = connections.Select(c =>
+            {
+                var from = _repository.GetPoint(c.From);
+                var to = _repository.GetPoint(c.To);
+                decimal distance = (decimal)from.ToGeoCoordinate()
+                    .GetDistanceTo(to.ToGeoCoordinate());
+
+                return new DistanceModel()
+                {
+                    From = from,
+                    To = to,
+                    Distance = distance
+                };
+
+            }).ToList();
+
+            var pathModel = new PathModel(distances);
+
+            var result = new OptimalPathModel()
+            {
+                Track = GetPoly(pathModel.Points),
+                Distance = pathModel.Distance
+            };
+
+            return result;
+        }
+
         private OptimalPathesModel PrepareResult(List<PathModel> pathes)
         {
             var result = new OptimalPathesModel();
@@ -215,6 +251,12 @@ namespace Navigation.Business
             {
                 Points = new List<Point>(prevPath.Points) {point};
                 Distance = prevPath.Distance + distance;
+            }
+
+            public PathModel(IEnumerable<DistanceModel> distances)
+            {
+                Points = distances.Select(d => d.From).Union(distances.Select(d => d.To)).Distinct().ToList();
+                Distance = distances.Sum(d => d.Distance);
             }
         }
     }
