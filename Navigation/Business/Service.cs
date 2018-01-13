@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using GMap.NET;
 using Navigation.Infrastructure;
 using Navigation.Models;
@@ -10,6 +11,9 @@ namespace Navigation.Business
 {
     public class Service
     {
+        private object _lockTracks = new object();
+        private object _lockResultTracks = new object();
+
         private readonly Repository _repository;
 
         public Service(Repository repository)
@@ -17,7 +21,7 @@ namespace Navigation.Business
             _repository = repository;
         }
 
-        public OptimalPathesModel GetOptimalPath(int idFrom, int idTo)
+        public async Task<OptimalPathesModel> GetOptimalPath(int idFrom, int idTo)
         {
             var connections = _repository.GetConnections();
 
@@ -53,8 +57,7 @@ namespace Navigation.Business
             var resultTracks = tracks.Where(x => x.Points.Last().Id == idTo).ToList();
             resultTracks.ForEach(x => tracks.Remove(x));
 
-            Recurse(tracks, resultTracks, distances, endingIds, idTo);
-
+            await Recurse(tracks, resultTracks, distances, endingIds, idTo);
 
             if (!resultTracks.Any())
             {
@@ -118,7 +121,7 @@ namespace Navigation.Business
             return result;
         }
 
-        private void Recurse(IList<PathModel> tracks, IList<PathModel> resultTracks, IList<DistanceModel> distances, IEnumerable<int> endingIds, int idTo)
+        private async Task Recurse(IList<PathModel> tracks, IList<PathModel> resultTracks, IList<DistanceModel> distances, IEnumerable<int> endingIds, int idTo)
         {
             if (!tracks.Any())
             {
@@ -128,42 +131,57 @@ namespace Navigation.Business
             var currentTracks = tracks.ToList();
             tracks.Clear();
 
-            foreach (var track in currentTracks)
+            var tasks = currentTracks.Select(track =>
             {
-                var edges = distances.Where(x => x.From.Id == track.Points.Last().Id && track.Points.All(y => x.To.Id != y.Id)).ToList();
-                
-
-                edges.ForEach(p =>
+                return Task.Factory.StartNew(() =>
                 {
-                    var currentPath = new PathModel(track, p.To, p.Distance);
-                    if (p.To.Id == idTo)
+
+                    var edges = distances.Where(x => x.From.Id == track.Points.Last().Id &&
+                                                     track.Points.All(y => x.To.Id != y.Id)).ToList();
+
+                    edges.ForEach(p =>
                     {
-                        resultTracks.Add(currentPath);
-                        if (resultTracks.Count > 3)
+                        var currentPath = new PathModel(track, p.To, p.Distance);
+                        if (p.To.Id == idTo)
                         {
-                            resultTracks.Remove(resultTracks.OrderByDescending(t => t.Distance).First());
+                            lock (_lockResultTracks)
+                            {
+                                resultTracks.Add(currentPath);
+                                if (resultTracks.Count > 3)
+                                {
+                                    resultTracks.Remove(resultTracks.OrderByDescending(t => t.Distance).First());
+                                }
+                            }
+                            return;
                         }
-                        return;
-                    }
 
-                    if (track.Points.Any(point => point.Id == p.To.Id))
-                    {
-                        return;
-                    }
-
-                    if (resultTracks.Count == 3)
-                    {
-                        var longestPath = resultTracks.OrderByDescending(t => t.Distance).First();
-                        if (currentPath.Distance >= longestPath.Distance)
+                        if (track.Points.Any(point => point.Id == p.To.Id))
                         {
                             return;
                         }
-                    }
-                    tracks.Add(currentPath);
-                });
-            }
 
-            Recurse(tracks, resultTracks, distances, endingIds, idTo);
+                        if (resultTracks.Count == 3)
+                        {
+                            lock (_lockResultTracks)
+                            {
+                                var longestPath = resultTracks.OrderByDescending(t => t.Distance).FirstOrDefault();
+                                if (longestPath != null && currentPath.Distance >= longestPath.Distance)
+                                {
+                                    return;
+                                }
+                            }
+                        }
+                        lock (_lockTracks)
+                        {
+                            tracks.Add(currentPath);
+                        }
+                    });
+                });
+            });
+
+            await Task.WhenAll(tasks);
+
+            await Recurse(tracks, resultTracks, distances, endingIds, idTo);
         }
 
         private class DistanceModel

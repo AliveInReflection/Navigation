@@ -115,7 +115,6 @@
     <Connection From="30" To="32" />
     <Connection From="34" To="58" />
     <Connection From="58" To="32" />
-    <Connection From="30" To="30" />
     <Connection From="57" To="56" />
     <Connection From="57" To="30" />
     <Connection From="58" To="56" />

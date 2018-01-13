@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Forms;
@@ -117,6 +118,7 @@ namespace Navigation
             ClearPathFields();
             ClearConnectionFields();
             ClearCurrentPointFields();
+            ClearMinPathesLength();
 
             CurrentLatLabel.Content = Undefined;
             CurrentLngLabel.Content = Undefined;
@@ -126,6 +128,13 @@ namespace Navigation
             UpdateMinPathsOverlay();
 
             SetStatus(Ready);
+        }
+
+        private void ClearMinPathesLength()
+        {
+            GreenLength.Content = "...";
+            YellowLength.Content = "...";
+            RedLength.Content = "...";
         }
 
         private void MapOnMouseClick(object sender, MouseEventArgs args)
@@ -200,9 +209,10 @@ namespace Navigation
         {
             ClearConnectionFields();
             ClearPathFields();
+            ClearMinPathesLength();
+            _optimalPathes = null;
             UpdateMinPathsOverlay();
 
-            _optimalPathes = null;
 
             SetStatus(Ready);
         }
@@ -287,7 +297,7 @@ namespace Navigation
             SetStatus(Ready);
         }
 
-        private void ShowPath_Click(object sender, RoutedEventArgs e)
+        private async void ShowPath_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedFrom == null || 
                 _selectedTo == null || 
@@ -301,23 +311,48 @@ namespace Navigation
             var from = _selectedFrom.Id;
             var to = _selectedTo.Id;
 
-            try
+            var task = Task.Factory.StartNew(async () =>
             {
-                _optimalPathes = _service.GetOptimalPath(from, to);
-                UpdateMinPathsOverlay();
-            }
-            catch(NoWayException)
-            {
-                SetStatus("There is no way between these airports");
-                ClearPathFields();
-                _optimalPathes = null;
-                UpdateMinPathsOverlay();
-                return;
-            }
+                try
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        SetStatus("Searching...");
+                        ShowPathButton.IsEnabled = false;
+                    });
 
-            ClearPathFields();
+                    _optimalPathes = await _service.GetOptimalPath(from, to);
 
-            SetStatus(Ready);
+                    Dispatcher.Invoke(() =>
+                    {
+                        UpdateMinPathsOverlay();
+                        UpdateMinPathesLength();
+                        ClearPathFields();
+                        SetStatus("Ready");
+                        ShowPathButton.IsEnabled = true;
+
+                    });
+                }
+                catch (NoWayException)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        SetStatus("There is no way between these airports");
+                        ClearPathFields();
+                        _optimalPathes = null;
+                        UpdateMinPathsOverlay();
+                        ShowPathButton.IsEnabled = true;
+                    });
+                }
+
+            });
+        }
+
+        private void UpdateMinPathesLength()
+        {
+            GreenLength.Content = (_optimalPathes.First.Distance / 1000).ToString("0.000");
+            YellowLength.Content = (_optimalPathes.Second.Distance / 1000).ToString("0.000");
+            RedLength.Content = (_optimalPathes.Third.Distance / 1000).ToString("0.000");
         }
 
         #endregion
@@ -349,7 +384,7 @@ namespace Navigation
             foreach (var line in lines)
             {
                 var poly = new GMapPolygon(line, "Connection");
-                poly.Stroke = new Pen(Color.CornflowerBlue, 2);
+                poly.Stroke = new Pen(Color.CornflowerBlue, 1);
                 _connectionsOverlay.Polygons.Add(poly);
             }
         }

@@ -138,18 +138,27 @@
                                 </GroupBox.Header>
                                 <StackPanel>
                                     <CheckBox x:Name="GreenPathCheckbox" Margin="5" IsChecked="True" Checked="OptimalPath_OnChecked" Unchecked="OptimalPath_OnChecked">
-                                        <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
                                             <Label FontSize="12" Padding="2">Green</Label>
+                                            <Label FontSize="12" Padding="2">[</Label>
+                                            <Label x:Name="GreenLength" FontSize="12" Padding="2">...</Label>
+                                            <Label FontSize="12" Padding="2">km]</Label>
                                         </StackPanel>
                                     </CheckBox>
                                     <CheckBox x:Name="YellowPathCheckbox" Margin="5" IsChecked="True" Checked="OptimalPath_OnChecked" Unchecked="OptimalPath_OnChecked">
-                                        <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
                                             <Label FontSize="12" Padding="2">Yellow</Label>
+                                            <Label FontSize="12" Padding="2">[</Label>
+                                            <Label x:Name="YellowLength" FontSize="12" Padding="2">...</Label>
+                                            <Label FontSize="12" Padding="2">km]</Label>
                                         </StackPanel>
                                     </CheckBox>
                                     <CheckBox x:Name="RedPathCheckbox" Margin="5" IsChecked="True" Checked="OptimalPath_OnChecked" Unchecked="OptimalPath_OnChecked">
-                                        <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
                                             <Label FontSize="12" Padding="2">Red</Label>
+                                            <Label FontSize="12" Padding="2">[</Label>
+                                            <Label x:Name="RedLength" FontSize="12" Padding="2">...</Label>
+                                            <Label FontSize="12" Padding="2">km]</Label>
                                         </StackPanel>
                                     </CheckBox>
                                 </StackPanel>
