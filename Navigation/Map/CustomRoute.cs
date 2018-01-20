@@ -30,6 +30,8 @@ namespace Navigation.Map
 
         public string TextTo { get; set; }
 
+        public bool TwoWay { get; set; }
+
         private void Init()
         {
             IsVisible = true;

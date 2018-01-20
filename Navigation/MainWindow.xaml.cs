@@ -263,7 +263,8 @@ namespace Navigation
             _repository.Add(new Connection()
             {
                 From = _selectedFrom.Id,
-                To = _selectedTo.Id
+                To = _selectedTo.Id,
+                TwoWay = TwoWayCheckBox.IsChecked.Value
             });
             
             _repository.Save();

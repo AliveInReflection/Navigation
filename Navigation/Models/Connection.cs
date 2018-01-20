@@ -11,5 +11,8 @@ namespace Navigation.Models
 
         [XmlAttribute]
         public int To { get; set; }
+
+        [XmlAttribute]
+        public bool TwoWay { get; set; }
     }
 }

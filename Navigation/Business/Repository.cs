@@ -36,8 +36,23 @@ namespace Navigation.Business
         {
             ValidateData();
 
-            if (_data.Connections.Any(x => x.From == connection.From && x.To == connection.To))
+            var existingConnection = _data.Connections.FirstOrDefault(x => x.From == connection.From && x.To == connection.To);
+            var reverseConnection = _data.Connections.FirstOrDefault(x => x.From == connection.To && x.To == connection.From);
+
+            if (existingConnection != null)
             {
+                return;
+            }
+
+            if (reverseConnection != null)
+            {
+                if (reverseConnection.TwoWay == false)
+                {
+                    reverseConnection.TwoWay = true;
+                    Save();
+                    return;
+                }
+
                 return;
             }
 
@@ -97,7 +112,8 @@ namespace Navigation.Business
         {
             ValidateData();
 
-            var connection = _data.Connections.FirstOrDefault(c => (c.From == idFrom && c.To == idTo) || (c.From == idTo && c.To == idFrom));
+            var connection = _data.Connections.FirstOrDefault(c => c.From == idFrom && c.To == idTo || 
+                                                                   c.From == idTo && c.To == idFrom && c.TwoWay);
 
             if (connection == null)
             {
@@ -111,8 +127,31 @@ namespace Navigation.Business
         {
             ValidateData();
 
-            var existingConnection = _data.Connections.FirstOrDefault(x => x.From == fromId && x.To == toId) ?? 
-                                     _data.Connections.First(x => x.From == toId && x.To == fromId);
+            var existingConnection = _data.Connections.FirstOrDefault(x => x.From == fromId && x.To == toId);
+
+            if (existingConnection == null)
+            {
+                var reversConnection = _data.Connections.FirstOrDefault(x => x.From == toId && x.To == fromId);
+                if (reversConnection != null && reversConnection.TwoWay)
+                {
+                    reversConnection.TwoWay = false;
+                    Save();
+                }
+
+                return;
+            }
+
+            if (existingConnection.TwoWay)
+            {
+                Add(new Connection()
+                {
+                    From = toId,
+                    To = fromId,
+                    TwoWay = false
+                });
+                Save();
+                return;
+            }
 
             var list = _data.Connections.ToList();
             list.Remove(existingConnection);

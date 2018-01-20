@@ -25,26 +25,21 @@ namespace Navigation.Business
         {
             var connections = _repository.GetConnections();
 
-            var distances = connections.Select(c =>
+            var distances = connections.SelectMany(c =>
             {
                 var from = _repository.GetPoint(c.From);
                 var to = _repository.GetPoint(c.To);
                 decimal distance = (decimal)from.ToGeoCoordinate()
                                                 .GetDistanceTo(to.ToGeoCoordinate());
 
-                return new DistanceModel()
-                {
-                    From = from,
-                    To = to,
-                    Distance = distance
-                };
+                var distanceModel = new DistanceModel(from, to, distance);
+
+                var ways = c.TwoWay ? new[] {distanceModel, distanceModel.Reverse()}
+                                      : new[] { distanceModel };
+
+                return ways;
 
             }).ToList();
-
-            foreach (var distance in distances.ToList())
-            {
-                distances.Add(distance.Reverse());
-            }
 
             var endingIds = distances.Where(x => x.To.Id == idTo).Select(x => x.From.Id).ToList();
 
@@ -73,26 +68,19 @@ namespace Navigation.Business
         {
             var points = pointsIds.Select(id => _repository.GetPoint(id)).ToList();
 
-            var connections = points
+            var distances = points
                 .Where((t, i) => i < points.Count - 1)
-                .Select((e, i) => _repository.GetConnection(e.Id, points[i + 1].Id)).AsEnumerable()
-                .ToList();
-
-            var distances = connections.Select(c =>
-            {
-                var from = _repository.GetPoint(c.From);
-                var to = _repository.GetPoint(c.To);
-                decimal distance = (decimal)from.ToGeoCoordinate()
-                    .GetDistanceTo(to.ToGeoCoordinate());
-
-                return new DistanceModel()
+                .Select((e, i) =>
                 {
-                    From = from,
-                    To = to,
-                    Distance = distance
-                };
+                    var connection = _repository.GetConnection(e.Id, points[i + 1].Id);
 
-            }).ToList();
+                    var from = _repository.GetPoint(e.Id);
+                    var to = _repository.GetPoint(points[i + 1].Id);
+                    decimal distance = (decimal)from.ToGeoCoordinate().GetDistanceTo(to.ToGeoCoordinate());
+
+                    return new DistanceModel(from, to, distance);
+                }).AsEnumerable()
+                .ToList();
 
             var pathModel = new PathModel(distances);
 
@@ -222,18 +210,20 @@ namespace Navigation.Business
 
         private class DistanceModel
         {
+            public DistanceModel(Point @from, Point to, decimal distance)
+            {
+                From = @from;
+                To = to;
+                Distance = distance;
+            }
+
             public Point From { get; set; }
             public Point To { get; set; }
             public decimal Distance { get; set; }
 
             public DistanceModel Reverse()
             {
-                return new DistanceModel()
-                {
-                    From = To,
-                    To = From,
-                    Distance = Distance
-                };
+                return new DistanceModel(To, From, Distance);
             }
         }
 

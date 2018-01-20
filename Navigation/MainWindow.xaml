@@ -248,7 +248,7 @@
                 </TabItem>
                 <TabItem Header="Connections">
                     <TabItem.Content>
-                        <GroupBox Margin="5 10" Height="150" VerticalAlignment="Top">
+                        <GroupBox Margin="5 10" Height="200" VerticalAlignment="Top">
                             <GroupBox.Header>
                                 <Label FontWeight="Bold" Foreground="MidnightBlue">Edit connections</Label>
                             </GroupBox.Header>
@@ -262,15 +262,18 @@
                                     <RowDefinition Height="27" ></RowDefinition>
                                     <RowDefinition Height="27"></RowDefinition>
                                     <RowDefinition Height="27"></RowDefinition>
+                                    <RowDefinition Height="27"></RowDefinition>
                                 </Grid.RowDefinitions>
 
                                 <Label Grid.Row="0" Grid.Column="0" FontSize="14" FontWeight="bold">From:</Label>
                                 <Label Grid.Row="0" Grid.Column="1" FontSize="14" x:Name="NewConnectionFromLabel">undefined</Label>
                                 <Label Grid.Row="1" Grid.Column="0" FontSize="14" FontWeight="bold">To:</Label>
                                 <Label Grid.Row="1" Grid.Column="1" FontSize="14" x:Name="NewConnectionToLabel">undefined</Label>
-                                <Button Grid.Row="2" Grid.Column="0" x:Name="ClearConnection" Click="Clear_Click">Clear</Button>
-                                <Button Grid.Row="2" Grid.Column="1" x:Name="AddConnection" Click="AddConnection_Click">Add</Button>
-                                <Button Grid.Row="3" Grid.Column="0" x:Name="DeleteConnection" Click="DeleteConnection_Click">Delete</Button>
+                                <Label Grid.Row="2" Grid.Column="0" FontSize="14" FontWeight="bold">Two way:</Label>
+                                <CheckBox x:Name="TwoWayCheckBox" Grid.Row="2" Grid.Column="1" Margin="6"></CheckBox>
+                                <Button Grid.Row="3" Grid.Column="0" x:Name="ClearConnection" Click="Clear_Click">Clear</Button>
+                                <Button Grid.Row="3" Grid.Column="1" x:Name="AddConnection" Click="AddConnection_Click">Add</Button>
+                                <Button Grid.Row="4" Grid.Column="0" x:Name="DeleteConnection" Click="DeleteConnection_Click">Delete</Button>
                             </Grid>
                         </GroupBox>
                     </TabItem.Content>
