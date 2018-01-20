@@ -69,7 +69,7 @@ namespace Navigation.Business
             return result;
         }
 
-        public OptimalPathModel ConvertToPathModel(IEnumerable<int> pointsIds)
+        public Navigation.Models.PathModel ConvertToPathModel(IEnumerable<int> pointsIds)
         {
             var points = pointsIds.Select(id => _repository.GetPoint(id)).ToList();
 
@@ -96,7 +96,7 @@ namespace Navigation.Business
 
             var pathModel = new PathModel(distances);
 
-            var result = new OptimalPathModel()
+            var result = new Models.PathModel()
             {
                 Track = GetPoly(pathModel.Points),
                 Distance = pathModel.Distance
@@ -110,7 +110,7 @@ namespace Navigation.Business
             var result = new OptimalPathesModel();
 
             var path = pathes.FirstOrDefault();
-            result.First = new OptimalPathModel()
+            result.First = new Models.PathModel()
             {
                 Track = GetPoly(path.Points),
                 Distance = path.Distance
@@ -124,7 +124,7 @@ namespace Navigation.Business
                 return result;
             }
 
-            result.Second = new OptimalPathModel()
+            result.Second = new Models.PathModel()
             {
                 Track = GetPoly(path.Points),
                 Distance = path.Distance
@@ -138,7 +138,7 @@ namespace Navigation.Business
                 return result;
             }
 
-            result.Third = new OptimalPathModel()
+            result.Third = new Models.PathModel()
             {
                 Track = GetPoly(path.Points),
                 Distance = path.Distance

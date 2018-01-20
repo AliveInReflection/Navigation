@@ -52,17 +52,11 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="GMap.NET.Core, Version=1.7.0.0, Culture=neutral, PublicKeyToken=b85b9027b614afef, processorArchitecture=MSIL">
-      <HintPath>..\packages\GMap.NET.WindowsForms.1.7.1\lib\net40\GMap.NET.Core.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="GMap.NET.Core, Version=1.7.5.0, Culture=neutral, PublicKeyToken=b85b9027b614afef, processorArchitecture=MSIL">
+      <HintPath>..\packages\GMap.NET.WindowsForms.1.7.5\lib\net40\GMap.NET.Core.dll</HintPath>
     </Reference>
-    <Reference Include="GMap.NET.WindowsForms, Version=1.7.0.0, Culture=neutral, PublicKeyToken=b85b9027b614afef, processorArchitecture=MSIL">
-      <HintPath>..\packages\GMap.NET.WindowsForms.1.7.1\lib\net40\GMap.NET.WindowsForms.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Maps.MapControl.WPF, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Maps.MapControl.WPF.1.0.0.3\lib\net40-Client\Microsoft.Maps.MapControl.WPF.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="GMap.NET.WindowsForms, Version=1.7.5.0, Culture=neutral, PublicKeyToken=b85b9027b614afef, processorArchitecture=MSIL">
+      <HintPath>..\packages\GMap.NET.WindowsForms.1.7.5\lib\net40\GMap.NET.WindowsForms.dll</HintPath>
     </Reference>
     <Reference Include="OxyPlot, Version=1.0.0.0, Culture=neutral, PublicKeyToken=638079a8f0bd61e9, processorArchitecture=MSIL">
       <HintPath>..\packages\OxyPlot.Core.1.0.0-unstable1974\lib\net45\OxyPlot.dll</HintPath>
@@ -117,10 +111,16 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Map\ConnectionsOverlay.cs" />
+    <Compile Include="Map\CustomRoute.cs" />
+    <Compile Include="Map\MinPathOverlay.cs" />
+    <Compile Include="Map\OwnPathOverlay.cs" />
+    <Compile Include="Map\PointsOverlay.cs" />
     <Compile Include="Models\Connection.cs" />
     <Compile Include="Models\CustomMarker.cs" />
     <Compile Include="Models\NoWayException.cs" />
     <Compile Include="Models\OptimalPathesModel.cs" />
+    <Compile Include="Models\PathModel.cs" />
     <Compile Include="Models\Point.cs" />
     <Compile Include="Models\StorageModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">

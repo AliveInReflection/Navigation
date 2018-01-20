@@ -13,6 +13,7 @@ using GMap.NET.WindowsForms;
 using GMap.NET.WindowsForms.Markers;
 using Navigation.Business;
 using Navigation.Infrastructure;
+using Navigation.Map;
 using Navigation.Models;
 
 namespace Navigation
@@ -28,13 +29,14 @@ namespace Navigation
         private GMapMarker _currentPoint;
         private CustomMarker _selectedMarker;
         private OptimalPathesModel _optimalPathes;
-        private List<int> _ownPath;
+        private PathModel _ownPath;
+        private List<int> _ownPathPoints;
 
         public int Zoom { get; set; }
-        private GMapOverlay _pointsOverlay;
-        private GMapOverlay _connectionsOverlay;
-        private GMapOverlay _minPathOverlay;
-        private GMapOverlay _ownPathOverlay;
+        private PointsOverlay _pointsOverlay;
+        private ConnectionsOverlay _connectionsOverlay;
+        private MinPathOverlay _minPathOverlay;
+        private OwnPathOverlay _ownPathOverlay;
 
         private CustomMarker _selectedFrom;
         private CustomMarker _selectedTo;
@@ -44,7 +46,7 @@ namespace Navigation
 
         public MainWindow()
         {
-            _ownPath = new List<int>();
+            _ownPathPoints = new List<int>();
             _repository = new Repository();
             _repository.Load();
 
@@ -80,19 +82,42 @@ namespace Navigation
             Map.OnMarkerClick += MapOnOnMarkerClick;
             Map.MouseClick += MapOnMouseClick;
 
-            _pointsOverlay = new GMapOverlay();
-            _connectionsOverlay = new GMapOverlay();
-            _minPathOverlay = new GMapOverlay();
-            _ownPathOverlay = new GMapOverlay();
+            _pointsOverlay = new PointsOverlay(_repository)
+            {
+                CurrentPoint = () => _currentPoint
+            };
+
+            _connectionsOverlay = new ConnectionsOverlay(_repository)
+            {
+                ShowDirection = SetStatus,
+                HideDirrection = ResetStatus
+            };
+
+            _minPathOverlay = new MinPathOverlay
+            {
+                OptimalPathes = () => _optimalPathes,
+                EnableRed = () => RedPathCheckbox.IsChecked.Value,
+                EnableYellow = () => YellowPathCheckbox.IsChecked.Value,
+                EnableGreen = () => GreenPathCheckbox.IsChecked.Value,
+            };
+            _ownPathOverlay = new OwnPathOverlay()
+            {
+                GetPath = () => _ownPath,
+                ShowOwn = () => OwnPathCheckbox.IsChecked.Value
+            };
+
+            Map.Overlays.Add(_connectionsOverlay);
 
             Map.Overlays.Add(_pointsOverlay);
-            Map.Overlays.Add(_connectionsOverlay);
             Map.Overlays.Add(_minPathOverlay);
             Map.Overlays.Add(_ownPathOverlay);
 
 
-            UpdatePointsOverlay();
-            UpdateConnectionsOverlay();
+            _pointsOverlay.Update();
+            _connectionsOverlay.Update();
+
+            Map.OnRouteEnter += _connectionsOverlay.MapOnRouteEnter;
+            Map.OnRouteLeave += _connectionsOverlay.MapOnRouteLeave;
         }
 
         # region handlers
@@ -126,13 +151,10 @@ namespace Navigation
             ClearMinPathesLength();
             ClearOwnPath();
             OwnPathCheckbox.IsChecked = false;
-
             CurrentLatLabel.Content = Undefined;
             CurrentLngLabel.Content = Undefined;
-
             _optimalPathes = null;
-
-            UpdateMinPathsOverlay();
+            _minPathOverlay.Update();
 
             SetStatus(Ready);
         }
@@ -211,8 +233,8 @@ namespace Navigation
             _repository.Add(point);
             _repository.Save();
 
-            UpdatePointsOverlay();
-            UpdateConnectionsOverlay();
+            _pointsOverlay.Update();
+            _connectionsOverlay.Update();
             ClearConnectionFields();
 
             SetStatus(Ready);
@@ -224,7 +246,7 @@ namespace Navigation
             ClearPathFields();
             ClearMinPathesLength();
             _optimalPathes = null;
-            UpdateMinPathsOverlay();
+            _minPathOverlay.Update();
 
 
             SetStatus(Ready);
@@ -247,7 +269,7 @@ namespace Navigation
             _repository.Save();
 
             ClearConnectionFields();
-            UpdateConnectionsOverlay();
+            _connectionsOverlay.Update();
 
             SetStatus(Ready);
         }
@@ -271,7 +293,7 @@ namespace Navigation
             }
 
             ClearConnectionFields();
-            UpdateConnectionsOverlay();
+            _connectionsOverlay.Update();
 
             SetStatus(Ready);
         }
@@ -312,10 +334,7 @@ namespace Navigation
 
         private async void ShowPath_Click(object sender, RoutedEventArgs e)
         {
-            if (_selectedFrom == null || 
-                _selectedTo == null || 
-                !_selectedFrom.IsAirport || 
-                !_selectedTo.IsAirport)
+            if (_selectedFrom == null || _selectedTo == null || !_selectedFrom.IsAirport || !_selectedTo.IsAirport)
             {
                 SetStatus("Airports should be selected for path optimal path calculation");
                 return;
@@ -338,7 +357,7 @@ namespace Navigation
 
                     Dispatcher.Invoke(() =>
                     {
-                        UpdateMinPathsOverlay();
+                        _minPathOverlay.Update();
                         UpdateMinPathesLength();
                         ClearPathFields();
                         SetStatus("Ready");
@@ -353,7 +372,7 @@ namespace Navigation
                         SetStatus("There is no way between these airports");
                         ClearPathFields();
                         _optimalPathes = null;
-                        UpdateMinPathsOverlay();
+                        _minPathOverlay.Update();
                         ShowPathButton.IsEnabled = true;
                     });
                 }
@@ -370,101 +389,12 @@ namespace Navigation
 
         #endregion
 
-        private void UpdatePointsOverlay()
-        {
-            _pointsOverlay.Markers.Clear();
 
-            var markers = _repository.GetPoints().Select(p => p.ToMarker());
-            foreach (var marker in markers)
-            {
-                _pointsOverlay.Markers.Add(marker);
-            }
-
-            _pointsOverlay.Markers.Add(_currentPoint);
-        }
-
-        private void UpdateConnectionsOverlay()
-        {
-            var connections = _repository.GetConnections();
-            var points = _repository.GetPoints();
-
-            var lines = connections.Select(c => points.Where(p => p.Id == c.From || p.Id == c.To)
-                                                      .Select(p => p.ToMapPoint())
-                                                      .ToList());
-
-            _connectionsOverlay.Polygons.Clear();
-
-            foreach (var line in lines)
-            {
-                var poly = new GMapPolygon(line, "Connection");
-                poly.Stroke = new Pen(Color.CornflowerBlue, 1);
-                //_connectionsOverlay.Polygons.Add(poly);
-                _connectionsOverlay.Routes.Add(new GMapRoute(line, "")
-                {
-                    Stroke = new Pen(Color.CornflowerBlue, 2f)
-                });
-            }
-        }
-
-        private void UpdateMinPathsOverlay()
-        {
-            _minPathOverlay?.Polygons.Clear();
-
-            if (_optimalPathes == null)
-            {
-                return;
-            }
-
-            if (_optimalPathes.Third != null)
-            {
-                foreach (var line in _optimalPathes.Third.Track)
-                {
-                    var poly = new GMapPolygon(line.ToList(), _optimalPathes.Third.Distance.ToString());
-                    poly.Stroke = new Pen(Color.Red, 3f);
-                    _minPathOverlay.Polygons.Add(poly);
-                    poly.IsVisible = RedPathCheckbox.IsChecked.Value;
-                }
-            }
-
-            if (_optimalPathes.Second != null)
-            {
-                foreach (var line in _optimalPathes.Second.Track)
-                {
-                    var poly = new GMapPolygon(line.ToList(), _optimalPathes.Second.Distance.ToString());
-                    poly.Stroke = new Pen(Color.Yellow, 3f);
-                    _minPathOverlay.Polygons.Add(poly);
-                    poly.IsVisible = YellowPathCheckbox.IsChecked.Value;
-                }
-            }
-
-            if (_optimalPathes.First != null)
-            {
-                foreach (var line in _optimalPathes.First.Track)
-                {
-                    var poly = new GMapPolygon(line.ToList(), _optimalPathes.First.Distance.ToString());
-                    poly.Stroke = new Pen(Color.DarkGreen, 3f);
-                    _minPathOverlay.Polygons.Add(poly);
-                    poly.IsVisible = GreenPathCheckbox.IsChecked.Value;
-
-                }
-            }
-        }
-
-        private void UpdateOwnPathOverlay(OptimalPathModel ownPathModel)
-        {
-            foreach (var line in ownPathModel.Track)
-            {
-                var poly = new GMapPolygon(line.ToList(), ownPathModel.Distance.ToString());
-                poly.Stroke = new Pen(Color.DarkViolet, 3f);
-                _ownPathOverlay.Polygons.Add(poly);
-                poly.IsVisible = RedPathCheckbox.IsChecked.Value;
-            }
-        }
 
         private void UpdateOverlays()
         {
-            UpdatePointsOverlay();
-            UpdateConnectionsOverlay();
+            _pointsOverlay.Update();
+            _connectionsOverlay.Update();
         }
 
         private void ClearConnectionFields()
@@ -491,6 +421,11 @@ namespace Navigation
             StatusLabel.Content = message;
         }
 
+        private void ResetStatus()
+        {
+            StatusLabel.Content = "Ready";
+        }
+
         private void ClearPathFields()
         {
             _selectedFrom = null;
@@ -502,7 +437,7 @@ namespace Navigation
 
         private void OptimalPath_OnChecked(object sender, RoutedEventArgs e)
         {
-            UpdateMinPathsOverlay();
+            _minPathOverlay?.Update();
         }
 
         private void ClearOwnPath_Click(object sender, RoutedEventArgs e)
@@ -512,13 +447,15 @@ namespace Navigation
 
         private void ClearOwnPath()
         {
-            _ownPath.Clear();
-            _ownPathOverlay.Clear();
+            _ownPathPoints.Clear();
+            _ownPath = null;
+            _ownPathOverlay.Update();
             OwnPathLength.Content = "...";
         }
+
         private void DrawOwnPath()
         {
-            if (_ownPath.Any() == false)
+            if (_ownPathPoints.Any() == false)
             {
                 if (_selectedMarker.IsAirport == false)
                 {
@@ -526,23 +463,22 @@ namespace Navigation
                     return;
                 }
 
-                _ownPath.Add(_selectedMarker.Id);
+                _ownPathPoints.Add(_selectedMarker.Id);
                 return;
             }
 
-            _ownPath.Add(_selectedMarker.Id);
+            _ownPathPoints.Add(_selectedMarker.Id);
 
             try
             {
-                var pathModel = _service.ConvertToPathModel(_ownPath);
-                UpdateOwnPathOverlay(pathModel);
-                OwnPathLength.Content = (pathModel.Distance / 1000).ToString("0.000");
-                SetStatus("Ready");
-
+                _ownPath = _service.ConvertToPathModel(_ownPathPoints);
+                _ownPathOverlay.Update();
+                OwnPathLength.Content = (_ownPath.Distance / 1000).ToString("0.000");
+                ResetStatus();
             }
             catch (NoWayException e)
             {
-                _ownPath.Remove(_ownPath.Last());
+                _ownPathPoints.Remove(_ownPathPoints.Last());
                 SetStatus("There is no way between selected points");
             }
         }
