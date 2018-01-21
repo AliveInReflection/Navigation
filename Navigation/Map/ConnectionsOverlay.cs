@@ -12,7 +12,6 @@ namespace Navigation.Map
     public class ConnectionsOverlay : GMapOverlay
     {
         private readonly Repository _repository;
-        private GMapMarker _tooltip;
         public Action<string> ShowDirection;
         public Action HideDirrection;
 
@@ -32,7 +31,7 @@ namespace Navigation.Map
                 TwoWay = c.TwoWay
             }).ToList();
 
-            this.Polygons.Clear();
+            this.Routes.Clear();
 
             foreach (var line in lines)
             {

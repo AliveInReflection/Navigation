@@ -143,19 +143,28 @@ namespace Navigation.Business
 
             if (existingConnection.TwoWay)
             {
+
+                Remove(existingConnection);
+
                 Add(new Connection()
                 {
                     From = toId,
                     To = fromId,
                     TwoWay = false
                 });
+
                 Save();
                 return;
             }
 
+            Remove(existingConnection);
+            Save();
+        }
+
+        private void Remove(Connection existingConnection)
+        {
             var list = _data.Connections.ToList();
             list.Remove(existingConnection);
-
             _data.Connections = list.ToArray();
         }
 
